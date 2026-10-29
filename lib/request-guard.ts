@@ -19,7 +19,7 @@ export async function guardRequest(request: Request, env: { DB?: D1Database; WAR
   if (request.method === 'POST') {
     const multipart = url.pathname === '/api/community' && request.headers.get('content-type')?.startsWith('multipart/form-data;');
     if (!multipart && request.headers.get('content-type')?.split(';')[0].trim().toLowerCase() !== 'application/json') throw new HttpError(415, 'JSON requis.');
-    const limit = url.pathname === '/api/vault' ? 1500000 : multipart ? 13 * 1024 * 1024 : url.pathname === '/api/admin' ? 8192 : 40000;
+    const limit = url.pathname === '/api/vault' ? 1500000 : multipart ? 13 * 1024 * 1024 : ['/api/admin','/api/hub'].includes(url.pathname) ? 8192 : 40000;
     bytes = await readLimitedBytes(request, limit);
     request = new Request(request, { body: bytes });
   }

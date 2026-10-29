@@ -29,6 +29,13 @@
       "when": 1793306129199,
       "tag": "0003_mailbox_security",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1793307347500,
+      "tag": "0004_hub_membership",
+      "breakpoints": true
     }
   ]
 }

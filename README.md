@@ -1,7 +1,7 @@
 # WarLike Server
 
 > Site : https://warlike-server.vikktor7.chatgpt.site/
-> Source publiée : `1d6d7b656509f97e7335921bf3ae6b291525bbbe`.
+> Source publiée : `aec7d9681dfdc3c680e1fdeae03f31860089966f`.
 > Secrets et données privées exclus.
 
 Développement et direction : **Hardi Victor MBANVU / HardieBay**.
@@ -68,3 +68,13 @@ Ce serveur ne fournit pas de SMTP/IMAP et n’héberge pas les fichiers de Studi
 Consulter [SECURITY.md](SECURITY.md) pour les protections, les limites et les tests. Dans WarLike Mail → Paramètres → Adresse et accès à la boîte, le responsable choisit un membre, son prénom et son nom puis génère ses identifiants. Le mot de passe aléatoire s’affiche une seule fois. Les adresses `prenom.nom@warlike.maill.dev` fonctionnent comme identifiants internes ; aucun DNS ni SMTP/IMAP Internet n’est configuré.
 
 Audit : `python3 security/audit.py --root .`. Validateur natif : `c++ -std=c++20 -O2 native/path_guard.cpp -o /tmp/warlike-path-guard` puis `/tmp/warlike-path-guard --self-test`. Tests Python : `python3 -m unittest discover -s security -p 'test_*.py'`.
+
+## WarLike Hub
+
+La page `/` rassemble Studio, Engine, Communauté, Mail, PDF, Crypte et les espaces de gestion selon le rôle. `/inscription` permet de confirmer son identité ChatGPT, déposer une présentation et choisir les espaces souhaités. `/inscriptions` est réservé au propriétaire et aux approbateurs pour valider ou refuser les demandes. Les réponses sont consultables par la personne ; aucun e-mail automatique n’est envoyé.
+
+Une nouvelle connexion ne donne pas accès aux services : les pages, les API et le lanceur `/ouvrir/[app]` vérifient l’adhésion au hub côté serveur. Le propriétaire et les approbateurs conservent leurs droits ; une validation n’attribue que le rôle membre et les autorisations Studio/Engine demandées. Les profils préparés puis attribués par le propriétaire sont reconnus. La migration conserve les comptes existants sans modifier leurs coffres ou leurs messages. Les décisions sont journalisées et les décisions répétées refusées.
+
+Le partage natif du Site reste privé : autoriser une adhésion au hub ne remplace pas l’autorisation de visiter le Site. Le formulaire est disponible aux personnes déjà autorisées dans ce partage. Le lanceur vérifie les accès, mais ne transforme pas les liens publics de Studio/Engine en applications privées. Mail garde son partage propre ; son identité signée est reliée au même identifiant WarLike sans écraser l’identité du hub, car les identifiants techniques Sites diffèrent entre applications.
+
+Les favoris sont des préférences locales au navigateur, séparées par identifiant WarLike. Ils ne contiennent ni clé ni mot de passe. Les dossiers regroupent les applications, sans simuler un stockage de fichiers. L’infrastructure précédente reste accessible au propriétaire dans `/serveur`.
