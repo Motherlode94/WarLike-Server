@@ -14,3 +14,6 @@
 @media(max-width:640px){.hub-app-card>p{font-size:12px}.hub-app-subtitle{font-size:8px;letter-spacing:.7px}.hub-app-status{font-size:9px}.hub-search input{font-size:16px}.hub-top-signout{min-width:32px;min-height:38px}.hub-favorite{min-width:30px;min-height:36px}.hub-topbar>div{gap:9px}.hub-account-button{font-size:9px;gap:5px}.hub-hero-copy>p{font-size:13px}.hub-sidebar nav :is(button,a){font-size:11px}}
 
 .hub-search button{background:none;border:0;color:#c3d4b4;padding:0 4px;min-height:24px}.hub-sidebar nav a{cursor:pointer}.hub-empty-back{display:inline-flex;align-items:center;gap:8px;margin-top:12px;padding:10px 15px;border:1px solid #526645;border-radius:5px;background:#2c3d2a;color:#d3e6bd}
+
+/* The application card is a link; favorites remain a separate control. */
+.hub-app-card{position:relative}.hub-card-link{color:inherit}.hub-card-link::after{content:'';position:absolute;inset:0;border-radius:inherit}.hub-favorite,.hub-app-bottom>a{position:relative;z-index:1}.hub-card-link:focus-visible::after{outline:2px solid var(--h-accent);outline-offset:4px}.hub-app-card:has(.hub-card-link:hover){border-color:#8da67d}.hub-directory{scroll-margin-top:24px}

@@ -1,7 +1,7 @@
 # WarLike Server
 
 > Site : https://warlike-server.vikktor7.chatgpt.site/
-> Source publiée : `22e77b2b3358cb76d3167ff9fde5220a6712d99c`.
+> Source publiée : `63a45a8230746d429ea798fcb782f85f5eb83e0b`.
 > Secrets et données privées exclus.
 
 Développement et direction : **Hardi Victor MBANVU / HardieBay**.
@@ -83,7 +83,7 @@ Les favoris sont des préférences locales au navigateur, séparées par identif
 
 Les dossiers utilisent de vrais liens `/?dossier=...#espaces`, rendus côté serveur. Ils fonctionnent sans attendre l’hydratation JavaScript et supportent rechargement et historique du navigateur. La recherche peut être soumise en GET. Les liens de connexion/inscription pour les visiteurs et les lanceurs externes utilisent une navigation au niveau supérieur pour éviter un écran d’authentification ou une application externe bloquée dans l’aperçu intégré. La politique de protection des frames reste inchangée.
 
-`/extensions` présente quatre modules WarLike activables par un compte autorisé : Notes rapides (30 notes, archives et export texte), Atelier Markdown (aperçu sans interprétation du HTML et export `.md`), Palette de couleurs (cinq couleurs, contrastes et export CSS), Minuteur Focus (décompte fondé sur une échéance absolue, pause et reprise). Les préférences et données de ces outils sont enregistrées dans le navigateur, avec des clés séparées par identifiant WarLike. Il ne s’agit pas d’une sauvegarde cloud : exporter les notes pour en conserver une copie. La désactivation conserve les données. Les valeurs stockées sont validées au chargement ; les modules ne chargent pas de code tiers arbitraire.
+`/extensions` présente huit modules WarLike activables par un compte autorisé : Notes rapides (30 notes, archives et export texte), Atelier Markdown (aperçu sans interprétation du HTML et export `.md`), Palette de couleurs (cinq couleurs, contrastes et export CSS), Minuteur Focus (décompte fondé sur une échéance absolue, pause et reprise). Les préférences et données de ces outils sont enregistrées dans le navigateur, avec des clés séparées par identifiant WarLike. Il ne s’agit pas d’une sauvegarde cloud : exporter les notes pour en conserver une copie. La désactivation conserve les données. Les valeurs stockées sont validées au chargement ; les modules ne chargent pas de code tiers arbitraire.
 
 ## Conversations privées et contrôle des accès
 
@@ -94,3 +94,17 @@ Lecture, favoris, archivage et corbeille sont propres à chaque membre. Déplace
 Les brouillons sont enregistrés automatiquement après une pause de saisie. Chaque sauvegarde exige la révision attendue : une autre fenêtre ne peut pas écraser silencieusement un texte plus récent. Un brouillon envoyé ou supprimé conserve un marqueur de suppression afin de refuser les sauvegardes tardives.
 
 Les pages applicatives et les API du Server refusent les visiteurs non connectés et les comptes non validés, refusés ou suspendus. L’accueil et le formulaire d’inscription permettent de consulter ou déposer sa demande ; les espaces de gestion exigent le rôle approprié. Le partage natif Sites reste une première barrière distincte. Les redirections d’accès et réponses privées interdisent le cache. Les liens publics Studio/Engine restent hors de cette protection.
+
+
+## Navigation et extensions créatives
+
+Les dossiers filtrent immédiatement les cartes après chargement de l’interface. Leurs liens restent utilisables sans JavaScript, la recherche est conservée dans l’URL et le retour arrière restaure le dossier précédent. Les cartes sont cliquables ; les favoris gardent leur bouton indépendant. Les liens des extensions non accessibles mènent à l’inscription. Un refus d’accès affiche un message dans le hub.
+
+Quatre modules complètent Notes, Markdown, Palette et Focus :
+
+- **Tableau de projets** : 100 tâches au total, colonnes À faire / En cours / Terminé, archives restaurables, export et import JSON avec confirmation de remplacement.
+- **Calculateur BPM** : tempo de 20 à 400 BPM, mesure au tap, délais de notes et durée de mesures.
+- **Convertisseur d’images** : PNG/JPEG/WebP, redimensionnement proportionnel et export local ; 12 Mo, 8 192 pixels par côté et 20 mégapixels maximum. JPEG utilise un fond blanc, l’export produit une image fixe sans EXIF.
+- **Atelier JSON** : validation, mise en forme, compactage, import/export ; 200 000 caractères maximum. Aucun code n’est exécuté.
+
+L’activation ouvre directement le module et son URL permet de le retrouver après rechargement, si le module est activé sur cet appareil. Les données sont propres au navigateur et à l’identifiant WarLike, sans synchronisation cloud. Les images restent en mémoire pendant l’ouverture du module ; les autres modules disposent d’une sauvegarde locale. Les contrôles d’accès du serveur restent obligatoires.

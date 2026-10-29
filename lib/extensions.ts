@@ -3,6 +3,10 @@ export const extensions=[
  {id:'markdown',name:'Atelier Markdown',icon:'code',description:'Écris avec un aperçu lisible, puis exporte ton fichier Markdown.',version:'1.0',category:'Écriture'},
  {id:'palette',name:'Palette de couleurs',icon:'sliders',description:'Compose cinq couleurs, mesure leur contraste et exporte les variables CSS.',version:'1.0',category:'Design'},
  {id:'timer',name:'Minuteur Focus',icon:'server',description:'Lance une session de travail ou une pause, avec reprise et remise à zéro.',version:'1.0',category:'Organisation'},
+ {id:'board',name:'Tableau de projets',icon:'folder',description:'Organise tes tâches en colonnes, garde tes archives et exporte une sauvegarde.',version:'1.0',category:'Organisation'},
+ {id:'tempo',name:'Calculateur BPM',icon:'sliders',description:'Trouve un tempo au tap, calcule les délais et la durée de tes mesures.',version:'1.0',category:'Musique'},
+ {id:'image',name:'Convertisseur d’images',icon:'file',description:'Redimensionne et exporte tes images en PNG, JPEG ou WebP sur ton appareil.',version:'1.0',category:'Design'},
+ {id:'json',name:'Atelier JSON',icon:'code',description:'Vérifie, formate et compacte les données de tes projets sans exécuter de code.',version:'1.0',category:'Développement'},
 ] as const;
 export type ExtensionId=typeof extensions[number]['id'];
 export function isExtensionId(value:unknown):value is ExtensionId{return typeof value==='string'&&extensions.some(e=>e.id===value)}

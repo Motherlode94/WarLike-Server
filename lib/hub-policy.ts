@@ -9,7 +9,7 @@ export const hubApplications:HubApplication[]=[
  {id:'mail',name:'WarLike Mail',subtitle:'MESSAGERIE',description:'Tes conversations et tes demandes, au même endroit.',group:'community',icon:'mail',tone:'blue',path:'https://warlike-mail.vikktor7.chatgpt.site',external:true},
  {id:'pdf',name:'WarLike PDF',subtitle:'DOCUMENTS',description:'Assemble, organise et annote tes documents en local.',group:'tools',icon:'file',tone:'sand',path:'/pdf'},
  {id:'vault',name:'WarLike Crypte',subtitle:'COFFRE PERSONNEL',description:'Tes accès chiffrés avec ta clé personnelle. Version expérimentale.',group:'tools',icon:'lock',tone:'violet',path:'/crypte'},
- {id:'extensions',name:'Extensions',subtitle:'MODULES DU HUB',description:'Active tes notes, ton aperçu Markdown, tes palettes et ton minuteur.',group:'tools',icon:'sliders',tone:'mint',path:'/extensions'},
+ {id:'extensions',name:'Extensions',subtitle:'MODULES DU HUB',description:'Huit modules pour tes notes, tes projets, le tempo, les images et les données.',group:'tools',icon:'sliders',tone:'mint',path:'/extensions'},
  {id:'admin',name:'Administration',subtitle:'MEMBRES & ACCÈS',description:'Les comptes, les rôles et le suivi de ton équipe.',group:'team',icon:'shield',tone:'mint',path:'/admin',role:'manager'},
  {id:'server',name:'WarLike Server',subtitle:'INFRASTRUCTURE',description:'Consulte l’état de ton serveur et de ses données.',group:'team',icon:'server',tone:'blue',path:'/serveur',role:'owner'},
 ];
