@@ -20,6 +20,10 @@ jobs:
       - run: /tmp/warlike-path-guard --self-test
       - run: python3 -m unittest discover -s security -p 'test_*.py'
       - run: python3 security/audit.py --root .
-      - run: node scripts/install-ci.mjs
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          version: '11.25.0'
+          run_install: false
+      - run: npm run install:ci
       - run: node --experimental-strip-types --test tests/*.test.ts
       - run: node node_modules/typescript/bin/tsc --noEmit
