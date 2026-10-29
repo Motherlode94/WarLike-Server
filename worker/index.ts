@@ -1,9 +1,11 @@
+import { guardRequest } from "../lib/request-guard";
+import { secureResponse, errorResponse } from "../lib/security";
 import handler from "vinext/server/fetch-handler";
 import { runWithConnectorBinding } from "../lib/connector-context";
 import type { ConnectorBinding } from "../lib/connector-contract.mjs";
 
 const worker = {
-  fetch(request: Request, env: Cloudflare.Env, ctx: ExecutionContext<{ CONNECTORS?: ConnectorBinding }>) {
+  async fetch(request: Request, env: Cloudflare.Env, ctx: ExecutionContext<{ CONNECTORS?: ConnectorBinding }>) {
     let binding = ctx.props?.CONNECTORS;
     // Local preview emulates the same request-scoped capability. This branch and
     // the auxiliary service binding are absent from production builds.
@@ -23,7 +25,10 @@ const worker = {
         },
       };
     }
-    return runWithConnectorBinding(binding, () => handler.fetch(request, env, ctx));
+    try {
+      const response = await guardRequest(request, env, safe => runWithConnectorBinding(binding, () => handler.fetch(safe, env, ctx)));
+      return secureResponse(response, request, import.meta.env.DEV);
+    } catch (error) { return secureResponse(errorResponse(error), request, import.meta.env.DEV); }
   },
 };
 

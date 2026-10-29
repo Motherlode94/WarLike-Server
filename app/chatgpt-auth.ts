@@ -1,5 +1,5 @@
 import {env} from "cloudflare:workers";
-import {verifyIdentity} from "@/lib/bridge";
+import {requestIdentity} from "@/lib/identity-context";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -22,7 +22,7 @@ const CALLBACK_PATH = "/callback";
 
 export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
   const requestHeaders = await headers();
-  if(requestHeaders.get("x-warlike-identity"))return verifyIdentity(requestHeaders,env.WARLIKE_BRIDGE_KEY||"");
+  if(requestHeaders.get("x-warlike-identity"))return requestIdentity()?.user || null;
   const userId = requestHeaders.get(USER_ID_HEADER);
   const email = requestHeaders.get(USER_EMAIL_HEADER);
   if (!userId || !email) return null;

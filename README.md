@@ -1,21 +1,70 @@
 # WarLike Server
 
 > Site : https://warlike-server.vikktor7.chatgpt.site/
-> Sources de la version publiée : `57cb999f086ec814aa776eb2a8967a410b217864`.
-> Les identifiants de connexion, secrets et bases de données ne sont pas inclus.
+> Source publiée : `1d6d7b656509f97e7335921bf3ae6b291525bbbe`.
+> Secrets et données privées exclus.
 
-Serveur privé de WarLike Mail : identités communes, conversations, demandes d’inscription, autorisations enregistrées et brouillons. Données persistantes dans D1, migrations Drizzle versionnées.
+Développement et direction : **Hardi Victor MBANVU / HardieBay**.
 
-## Authentification
+Espace privé de l’univers WarLike, avec une identité commune et des données persistantes sur Cloudflare Workers, D1 et R2.
 
-Le propriétaire de la console utilise Sign in with ChatGPT. Le client Mail transmet une identité provenant de cette même connexion, signée HMAC-SHA256 avec une validité de 30 secondes. Le serveur vérifie la signature et relit le rôle en base pour chaque action. La clé de pont et l’accès de service restent dans les variables d’environnement privées. Une identité anonyme ne peut pas accéder aux conversations. Un membre lit ses conversations ; le référent gère la boîte d’équipe ; seul le propriétaire nomme les référents.
+| Espace | Route | Fonctions |
+| --- | --- | --- |
+| Serveur | `/` | État du stockage et liens vers les services |
+| Admin | `/admin` | Membres, rôles, suspension, maintenance, présence API et journal |
+| Communauté | `/communaute` | Œuvres, images et audio, appréciations, commentaires et modération |
+| Crypte | `/crypte` | Coffre individuel chiffré, générateur et sauvegardes chiffrées |
+| PDF | `/pdf` | Fusion, ordre et rotation des pages, texte, surlignage, dessin, rectangles et export |
+| API Mail | `/api/mail` | Conversations, inscriptions, décisions, droits et brouillons |
 
-Variables requises : WARLIKE_OWNER_EMAIL et WARLIKE_BRIDGE_KEY. La console d’hébergement reste réservée au propriétaire. Le partage natif du site reste privé.
+## Identité et comptes
 
-## Contrôles
+La connexion utilise Sign in with ChatGPT. Le client WarLike Mail transmet une identité signée HMAC-SHA256, valable 30 secondes. Le serveur vérifie la signature, retrouve l’identifiant WarLike et relit le rôle en base à chaque action. Les secrets ne sont jamais fournis au navigateur.
 
-`node --experimental-strip-types --test tests/*.test.ts` : politique de rôles, isolation des conversations, validation des champs, origine, identifiants et signatures du pont. `npx tsc --noEmit` et build Sites.
+Variables privées requises : `WARLIKE_OWNER_EMAIL` et `WARLIKE_BRIDGE_KEY`. La base utilise le binding `DB` ; les images et fichiers audio utilisent `BUCKET`. Les migrations Drizzle sont versionnées dans `drizzle/` et sont appliquées par l’hébergement.
 
-## Périmètre
+Le propriétaire conserve les droits Dev / Admin et ne peut pas être suspendu ou rétrogradé depuis la console. La migration prépare **5 profils testeurs et 4 profils approbateurs** ; la commande de préparation de la console est également idempotente. Ces profils sont des places à attribuer, sans mot de passe partagé ni identité fictive. Il faut associer une adresse réelle, puis autoriser la personne dans le partage privé du Site. L’association ne transmet aucune invitation automatiquement.
 
-Ce serveur héberge l’API et les données. Il ne fournit pas de SMTP/IMAP et n’héberge pas les fichiers de Studio ou Engine. Les autorisations du registre ne bloquent pas encore les versions publiques `.pages.dev` : leur contrôle de connexion doit être raccordé séparément. Aucun référent réel n’est préconfiguré ; son adresse n’a pas encore été fournie.
+Les approbateurs correspondent au rôle `referent` : ils traitent les demandes, modèrent les œuvres et gèrent les membres ordinaires. Seul le propriétaire nomme d’autres approbateurs et contrôle la maintenance. Une suspension est vérifiée sur les prochaines requêtes authentifiées. La présence signifie qu’un appel API a été observé dans les deux dernières minutes ; ce n’est pas une connexion WebSocket en temps réel. La console affiche des mesures D1 réelles, sans inventer de CPU ou de RAM.
+
+## Communauté
+
+Les membres autorisés publient leurs jeux, morceaux et illustrations. Les contenus restent privés selon le partage du Site. Les œuvres peuvent recevoir une image ou un fichier audio détecté par signature (PNG, JPEG, GIF, WebP, MP3, WAV, OGG), avec une limite de 12 Mo. SVG et HTML ne sont pas acceptés. Les textes sont rendus par React, les liens sont HTTPS, les droits de modification sont vérifiés côté serveur et la modération est journalisée. Le fil présente les 50 dernières publications ; les commentaires affichent les 100 premiers messages visibles d’une publication.
+
+## WarLike Crypte — version expérimentale
+
+Le mot de passe maître et le contenu déchiffré restent dans le navigateur. Web Crypto dérive une clé AES-GCM 256 bits non exportable avec PBKDF2-SHA256, 600 000 itérations et un sel aléatoire de 32 octets. Chaque enregistrement utilise un IV aléatoire de 12 octets. L’identité WarLike est liée au contenu authentifié. L’API stocke uniquement l’enveloppe chiffrée et refuse les sauvegardes dont la révision est dépassée. Il n’existe pas de lecture administrative du coffre d’un autre membre.
+
+Le coffre se verrouille après deux minutes d’inactivité ou lorsque l’onglet devient masqué. Les exports et imports sont chiffrés ; une restauration demande le mot de passe de la sauvegarde puis une confirmation de remplacement. Changer le mot de passe maître rechiffre le coffre. Les anciennes sauvegardes nécessitent encore l’ancien mot de passe. Le presse-papiers reste sous le contrôle du système.
+
+**Aucun audit de sécurité indépendant n’a été réalisé.** Ne pas présenter cette version comme un remplacement éprouvé d’un gestionnaire de mots de passe audité. Le mot de passe maître ne peut pas être réinitialisé pour retrouver le contenu. Conserver ce mot de passe et une sauvegarde chiffrée en lieu sûr. La sécurité dépend aussi du navigateur, de l’appareil et du code servi par le Site.
+
+Sources techniques : [Web Crypto AES-GCM](https://developer.mozilla.org/en-US/docs/Web/API/AesGcmParams), [dérivation PBKDF2](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/deriveKey), [recommandation OWASP PBKDF2-SHA256](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html).
+
+## WarLike PDF
+
+Les fichiers PDF sont chargés et modifiés **localement dans le navigateur**. Aucun document n’est envoyé à l’API. Limites : 30 Mo par fichier, 50 Mo au total, 10 fichiers, 200 pages et 100 annotations. L’export conserve les pages PDF et les ajouts vectoriels : il ne convertit pas le document entier en images. La police DejaVu Sans embarquée permet notamment les accents français.
+
+Cette version ajoute du texte et des annotations ; elle ne réécrit pas les paragraphes d’origine et ne réalise pas de caviardage sécurisé. Les formulaires interactifs sont conservés lorsqu’un seul fichier est réordonné ou annoté avec toutes ses pages. La fusion, la duplication et le retrait de pages d’un formulaire sont refusés à l’export pour préserver ses champs. Les PDF protégés doivent être ouverts dans une copie déverrouillée. Toute modification d’un PDF signé invalide sa signature ; conserver l’original.
+
+Moteurs et licences : [pdf-lib](https://pdf-lib.js.org/) (MIT), [Mozilla PDF.js](https://mozilla.github.io/pdf.js/) (Apache-2.0), [fontkit](https://github.com/Hopding/fontkit) (MIT), [DejaVu Fonts](https://dejavu-fonts.github.io/) (licence Bitstream Vera / domaine public selon les parties). Les ressources d’affichage et leurs licences sont embarquées dans `public/vendor/pdfjs/` ; aucune dépendance à un CDN à l’usage.
+
+## Développement et contrôles
+
+```sh
+node "$SITES_PNPM_BIN" install --frozen-lockfile
+node --experimental-strip-types --test --test-concurrency=1 tests/*.test.ts
+node node_modules/typescript/bin/tsc --noEmit
+```
+
+Construire et publier avec le workflow Sites, en conservant le `project_id` de `.openai/hosting.json` et son audience privée. Les tests exécutent les migrations réelles dans SQLite et vérifient les rôles, les signatures, la maintenance, l’isolation des coffres, les conflits de sauvegarde et l’export PDF, y compris les champs de formulaire et leurs apparences.
+
+## Limites d’intégration
+
+Ce serveur ne fournit pas de SMTP/IMAP et n’héberge pas les fichiers de Studio ou Engine. Les autorisations du registre **ne bloquent pas encore leurs versions publiques `.pages.dev`** : leur contrôle de connexion reste à raccorder. Les redémarrages, domaines et déploiements se gèrent auprès de l’hébergement. Le partage privé du Site est distinct des rôles applicatifs et doit autoriser chaque futur membre.
+
+## Sécurité et boîtes nominatives
+
+Consulter [SECURITY.md](SECURITY.md) pour les protections, les limites et les tests. Dans WarLike Mail → Paramètres → Adresse et accès à la boîte, le responsable choisit un membre, son prénom et son nom puis génère ses identifiants. Le mot de passe aléatoire s’affiche une seule fois. Les adresses `prenom.nom@warlike.maill.dev` fonctionnent comme identifiants internes ; aucun DNS ni SMTP/IMAP Internet n’est configuré.
+
+Audit : `python3 security/audit.py --root .`. Validateur natif : `c++ -std=c++20 -O2 native/path_guard.cpp -o /tmp/warlike-path-guard` puis `/tmp/warlike-path-guard --self-test`. Tests Python : `python3 -m unittest discover -s security -p 'test_*.py'`.

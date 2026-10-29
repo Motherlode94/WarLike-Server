@@ -1,0 +1,6 @@
+import type {Principal} from './policy';
+export const creationKinds=['game','music','art','other'] as const;
+export function creationLink(value:unknown){if(value===''||value==null)return '';if(typeof value!=='string'||value.length>2048)throw Error('Lien trop long.');const url=new URL(value);if(url.protocol!=='https:'||url.username||url.password)throw Error('Utilise un lien HTTPS sans identifiant.');return url.href}
+export function mayModerate(user:Principal){return user.role==='owner'||user.role==='referent'}
+export function mayRemove(user:Principal,authorId:string){return user.id===authorId||mayModerate(user)}
+export function detectedMedia(bytes:Uint8Array):string|null{const ascii=(start:number,end:number)=>String.fromCharCode(...bytes.slice(start,end));if(bytes[0]===137&&ascii(1,4)==='PNG'&&bytes[4]===13&&bytes[5]===10)return 'image/png';if(bytes[0]===255&&bytes[1]===216&&bytes[2]===255)return 'image/jpeg';if(ascii(0,6)==='GIF87a'||ascii(0,6)==='GIF89a')return 'image/gif';if(ascii(0,4)==='RIFF'&&ascii(8,12)==='WEBP')return 'image/webp';if(ascii(0,4)==='RIFF'&&ascii(8,12)==='WAVE')return 'audio/wav';if(ascii(0,4)==='OggS')return 'audio/ogg';if(ascii(0,3)==='ID3'||bytes[0]===255&&(bytes[1]&0xe0)===0xe0)return 'audio/mpeg';return null}
