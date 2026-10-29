@@ -53,7 +53,7 @@ export function secureResponse(response: Response, request: Request, development
   headers.set('Cross-Origin-Resource-Policy', 'same-origin');
   headers.set('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
   if (!development && new URL(request.url).protocol === 'https:') headers.set('Strict-Transport-Security', 'max-age=31536000');
-  if (new URL(request.url).pathname.startsWith('/api/') || headers.get('content-type')?.includes('text/html')) {
+  if ((response.status>=300&&response.status<400) || new URL(request.url).pathname.startsWith('/api/') || headers.get('content-type')?.includes('text/html')) {
     headers.set('Cache-Control', 'private, no-store'); headers.set('Pragma', 'no-cache'); headers.delete('ETag');
   }
   if (!headers.has('Content-Security-Policy')) headers.set('Content-Security-Policy', [

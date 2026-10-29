@@ -1,3 +1,4 @@
+import {mailDatabase} from './mail-database.ts';
 import {test} from 'node:test';import assert from 'node:assert/strict';
 import {readJsonObject,readLimitedBytes,secureResponse,HttpError,errorResponse} from '../lib/security.ts';
 import {consumeNonce,rateLimit} from '../lib/security-store.ts';
@@ -35,7 +36,7 @@ test('request guard rejects anonymous and cross-site writes before dispatch',asy
 test('a valid signed request dispatches once; replay and changed bodies do not',async()=>{
  const user={userId:'mail-1',email:'one@example.test',fullName:'One',displayName:'One'},secret='s'.repeat(64),body='{"action":"reply"}';
  const auth=await signIdentity(user,secret,{method:'POST',path:'/api/mail',body});
- const request=()=>json(body,{...auth,Origin:'https://example.test'}),env={DB:memoryDB(),WARLIKE_BRIDGE_KEY:secret};
+ const f=mailDatabase();f.sql.prepare('UPDATE members SET email=? WHERE id=?').run(user.email,f.owner.id);const request=()=>json(body,{...auth,Origin:'https://example.test'}),env={DB:f.db,WARLIKE_BRIDGE_KEY:secret,WARLIKE_OWNER_EMAIL:user.email};
  assert.equal((await guardRequest(request(),env,async()=>new Response('ok'))).status,200);
  await assert.rejects(()=>guardRequest(request(),env,async()=>new Response('bad')),e=>e instanceof HttpError&&e.status===401);
  await assert.rejects(()=>guardRequest(json('{}',{...auth,Origin:'https://example.test'}),env,async()=>new Response('bad')),e=>e instanceof HttpError&&e.status===401);

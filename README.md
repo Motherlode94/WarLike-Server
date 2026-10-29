@@ -1,7 +1,7 @@
 # WarLike Server
 
 > Site : https://warlike-server.vikktor7.chatgpt.site/
-> Source publiée : `aec7d9681dfdc3c680e1fdeae03f31860089966f`.
+> Source publiée : `22e77b2b3358cb76d3167ff9fde5220a6712d99c`.
 > Secrets et données privées exclus.
 
 Développement et direction : **Hardi Victor MBANVU / HardieBay**.
@@ -78,3 +78,19 @@ Une nouvelle connexion ne donne pas accès aux services : les pages, les API et 
 Le partage natif du Site reste privé : autoriser une adhésion au hub ne remplace pas l’autorisation de visiter le Site. Le formulaire est disponible aux personnes déjà autorisées dans ce partage. Le lanceur vérifie les accès, mais ne transforme pas les liens publics de Studio/Engine en applications privées. Mail garde son partage propre ; son identité signée est reliée au même identifiant WarLike sans écraser l’identité du hub, car les identifiants techniques Sites diffèrent entre applications.
 
 Les favoris sont des préférences locales au navigateur, séparées par identifiant WarLike. Ils ne contiennent ni clé ni mot de passe. Les dossiers regroupent les applications, sans simuler un stockage de fichiers. L’infrastructure précédente reste accessible au propriétaire dans `/serveur`.
+
+## Menu et extensions du hub
+
+Les dossiers utilisent de vrais liens `/?dossier=...#espaces`, rendus côté serveur. Ils fonctionnent sans attendre l’hydratation JavaScript et supportent rechargement et historique du navigateur. La recherche peut être soumise en GET. Les liens de connexion/inscription pour les visiteurs et les lanceurs externes utilisent une navigation au niveau supérieur pour éviter un écran d’authentification ou une application externe bloquée dans l’aperçu intégré. La politique de protection des frames reste inchangée.
+
+`/extensions` présente quatre modules WarLike activables par un compte autorisé : Notes rapides (30 notes, archives et export texte), Atelier Markdown (aperçu sans interprétation du HTML et export `.md`), Palette de couleurs (cinq couleurs, contrastes et export CSS), Minuteur Focus (décompte fondé sur une échéance absolue, pause et reprise). Les préférences et données de ces outils sont enregistrées dans le navigateur, avec des clés séparées par identifiant WarLike. Il ne s’agit pas d’une sauvegarde cloud : exporter les notes pour en conserver une copie. La désactivation conserve les données. Les valeurs stockées sont validées au chargement ; les modules ne chargent pas de code tiers arbitraire.
+
+## Conversations privées et contrôle des accès
+
+Les messages privés sont accessibles uniquement aux participants, même si un autre compte possède un rôle propriétaire ou référent. Les conversations de la boîte d’équipe restent partagées avec les responsables et sont présentées comme telles lors de la rédaction. Cette confidentialité est appliquée par les permissions du serveur ; les messages ne sont pas chiffrés de bout en bout et restent lisibles par un opérateur ayant accès à la base.
+
+Lecture, favoris, archivage et corbeille sont propres à chaque membre. Déplacer une conversation dans sa corbeille ne la retire pas à son correspondant ; elle peut être restaurée. L’envoi privé utilise un identifiant stable pour éviter une livraison en double lors d’une nouvelle tentative.
+
+Les brouillons sont enregistrés automatiquement après une pause de saisie. Chaque sauvegarde exige la révision attendue : une autre fenêtre ne peut pas écraser silencieusement un texte plus récent. Un brouillon envoyé ou supprimé conserve un marqueur de suppression afin de refuser les sauvegardes tardives.
+
+Les pages applicatives et les API du Server refusent les visiteurs non connectés et les comptes non validés, refusés ou suspendus. L’accueil et le formulaire d’inscription permettent de consulter ou déposer sa demande ; les espaces de gestion exigent le rôle approprié. Le partage natif Sites reste une première barrière distincte. Les redirections d’accès et réponses privées interdisent le cache. Les liens publics Studio/Engine restent hors de cette protection.

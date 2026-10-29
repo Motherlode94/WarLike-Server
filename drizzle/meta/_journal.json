@@ -36,6 +36,13 @@
       "when": 1793307347500,
       "tag": "0004_hub_membership",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1793310424060,
+      "tag": "0005_private_mail",
+      "breakpoints": true
     }
   ]
 }

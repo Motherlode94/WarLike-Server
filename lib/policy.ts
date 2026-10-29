@@ -1,7 +1,7 @@
 import {HttpError} from './security.ts';
 export type Principal={id:string;email:string;name:string;role:string};
 export const manager=(user:Principal)=>user.role==='owner'||user.role==='referent';
-export function mayRead(user:Principal,thread:{member_id:string}){return manager(user)||thread.member_id===user.id;}
+export function mayRead(user:Principal,thread:{member_id:string;kind?:string},participants:string[]=[]){return thread.kind==='direct'?participants.includes(user.id):manager(user)||thread.member_id===user.id;}
 export function text(value:unknown,max:number,label='Champ'){if(typeof value!=='string'||!value.trim()||value.length>max)throw new HttpError(400,label+' invalide.');return value.trim();}
 export function targets(value:unknown){if(!Array.isArray(value)||!value.length||value.length>2||value.some(v=>!['studio','engine'].includes(v)))throw new HttpError(400,'Choisis Studio et/ou Engine.');return [...new Set(value)] as string[];}
 export function email(value:unknown){const s=text(value,254,'E-mail').toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s))throw new HttpError(400,'Adresse e-mail invalide.');return s;}

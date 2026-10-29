@@ -9,11 +9,12 @@ export const hubApplications:HubApplication[]=[
  {id:'mail',name:'WarLike Mail',subtitle:'MESSAGERIE',description:'Tes conversations et tes demandes, au même endroit.',group:'community',icon:'mail',tone:'blue',path:'https://warlike-mail.vikktor7.chatgpt.site',external:true},
  {id:'pdf',name:'WarLike PDF',subtitle:'DOCUMENTS',description:'Assemble, organise et annote tes documents en local.',group:'tools',icon:'file',tone:'sand',path:'/pdf'},
  {id:'vault',name:'WarLike Crypte',subtitle:'COFFRE PERSONNEL',description:'Tes accès chiffrés avec ta clé personnelle. Version expérimentale.',group:'tools',icon:'lock',tone:'violet',path:'/crypte'},
+ {id:'extensions',name:'Extensions',subtitle:'MODULES DU HUB',description:'Active tes notes, ton aperçu Markdown, tes palettes et ton minuteur.',group:'tools',icon:'sliders',tone:'mint',path:'/extensions'},
  {id:'admin',name:'Administration',subtitle:'MEMBRES & ACCÈS',description:'Les comptes, les rôles et le suivi de ton équipe.',group:'team',icon:'shield',tone:'mint',path:'/admin',role:'manager'},
  {id:'server',name:'WarLike Server',subtitle:'INFRASTRUCTURE',description:'Consulte l’état de ton serveur et de ses données.',group:'team',icon:'server',tone:'blue',path:'/serveur',role:'owner'},
 ];
-export const publicInterests=['studio','engine','community','mail','pdf','vault'];
-export function interests(value:unknown){if(!Array.isArray(value)||!value.length||value.length>6||value.some(v=>typeof v!=='string'||!publicInterests.includes(v)))throw new AdminAccessError('Choisis au moins un espace parmi ceux proposés.',400);return [...new Set(value)] as string[]}
+export const publicInterests=['studio','engine','community','mail','pdf','vault','extensions'];
+export function interests(value:unknown){if(!Array.isArray(value)||!value.length||value.length>7||value.some(v=>typeof v!=='string'||!publicInterests.includes(v)))throw new AdminAccessError('Choisis au moins un espace parmi ceux proposés.',400);return [...new Set(value)] as string[]}
 export function mayEnterHub(user:Principal,status:HubStatus){return user.role==='owner'||user.role==='referent'||status==='active'}
 export function assertHubMembership(user:Principal,status:HubStatus){if(!mayEnterHub(user,status))throw new AdminAccessError(status==='pending'?'Ton inscription au hub attend la validation de l’équipe.':status==='declined'?'Ta demande n’a pas été retenue. Tu peux consulter sa réponse dans le hub.':'Inscris-toi dans le hub pour accéder aux espaces WarLike.',403)}
 export function mayOpenApplication(user:Principal|null,status:HubStatus,app:HubApplication,grants:string[]){if(!user||!mayEnterHub(user,status))return false;const manager=['owner','referent'].includes(user.role);if(app.role==='owner'&&user.role!=='owner'||app.role==='manager'&&!manager)return false;return !app.grant||manager||grants.includes(app.grant)}

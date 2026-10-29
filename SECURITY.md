@@ -21,3 +21,13 @@ Les noms ne sont pas des identités d’authentification. Les comptes de platefo
 Les tests couvrent les signatures, l’anti-rejeu, les limites de requêtes, la séparation des membres, les mots de passe, la révocation des sessions et les migrations SQL réelles. Le workflow GitHub fixe les actions à des commits et limite son jeton à la lecture du dépôt.
 
 Ces contrôles réduisent des risques précis ; ils ne constituent pas un audit indépendant. La CSP autorise encore les scripts et styles inline requis par l’application. Les sessions WebView2 et les données affichées restent accessibles au propriétaire de la session Windows. Les secrets de production appartiennent aux variables privées de déploiement, jamais à GitHub ou au client natif.
+
+## Conversations privées et contrôle des accès
+
+Les messages privés sont accessibles uniquement aux participants, même si un autre compte possède un rôle propriétaire ou référent. Les conversations de la boîte d’équipe restent partagées avec les responsables et sont présentées comme telles lors de la rédaction. Cette confidentialité est appliquée par les permissions du serveur ; les messages ne sont pas chiffrés de bout en bout et restent lisibles par un opérateur ayant accès à la base.
+
+Lecture, favoris, archivage et corbeille sont propres à chaque membre. Déplacer une conversation dans sa corbeille ne la retire pas à son correspondant ; elle peut être restaurée. L’envoi privé utilise un identifiant stable pour éviter une livraison en double lors d’une nouvelle tentative.
+
+Les brouillons sont enregistrés automatiquement après une pause de saisie. Chaque sauvegarde exige la révision attendue : une autre fenêtre ne peut pas écraser silencieusement un texte plus récent. Un brouillon envoyé ou supprimé conserve un marqueur de suppression afin de refuser les sauvegardes tardives.
+
+Les pages applicatives et les API du Server refusent les visiteurs non connectés et les comptes non validés, refusés ou suspendus. L’accueil et le formulaire d’inscription permettent de consulter ou déposer sa demande ; les espaces de gestion exigent le rôle approprié. Le partage natif Sites reste une première barrière distincte. Les redirections d’accès et réponses privées interdisent le cache. Les liens publics Studio/Engine restent hors de cette protection.
