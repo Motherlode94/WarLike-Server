@@ -108,3 +108,19 @@ Quatre modules complètent Notes, Markdown, Palette et Focus :
 - **Atelier JSON** : validation, mise en forme, compactage, import/export ; 200 000 caractères maximum. Aucun code n’est exécuté.
 
 L’activation ouvre directement le module et son URL permet de le retrouver après rechargement, si le module est activé sur cet appareil. Les données sont propres au navigateur et à l’identifiant WarLike, sans synchronisation cloud. Les images restent en mémoire pendant l’ouverture du module ; les autres modules disposent d’une sauvegarde locale. Les contrôles d’accès du serveur restent obligatoires.
+
+## Déploiement Cloudflare Pages : vérification de disponibilité
+
+La copie Cloudflare Pages `warlike-server.pages.dev` est **distincte** de l'application privée `warlike-server.vikktor7.chatgpt.site`. Une synchronisation GitHub et un déploiement « success » ne signifient pas que le backend vinext/Next a été compilé et que ses fonctions tournent.
+
+Le point `GET /api/health` retourne `200` uniquement si les bindings serveur `DB` et `BUCKET`, ainsi que les secrets `WARLIKE_OWNER_EMAIL` et `WARLIKE_BRIDGE_KEY`, sont accessibles. Sinon, il retourne `503` ; aucun secret n'est renvoyé au navigateur.
+
+Avant toute mise en production de la copie Pages :
+
+1. Configurer une construction compatible avec vinext/Cloudflare Workers, et vérifier réellement la route `/api/health` (et non seulement la réussite du job de déploiement).
+2. Créer/relier un stockage **dédié** au Server et appliquer les migrations versionnées `drizzle/`. Ne jamais relier par inadvertance la base D1 de CodeDuo.
+3. Configurer les bindings `DB` et `BUCKET` et les secrets privés requis depuis le tableau Cloudflare, jamais dans Git.
+4. Vérifier une session réelle, le refus anonyme, la séparation des rôles et les échanges Mail/Server avec un secret partagé identique.
+5. Ne pas exposer de données de production avant d'avoir validé l'isolation des comptes et la politique de partage privé.
+
+Ce dépôt ne propose ni SMTP/IMAP ni un fournisseur d'envoi d'e-mails vers Internet. La connexion CodeDuo est indépendante tant qu'une intégration d'identités serveur à serveur n'est pas définie.
