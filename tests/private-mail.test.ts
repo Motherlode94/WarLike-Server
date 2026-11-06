@@ -59,3 +59,18 @@ test('gateway blocks anonymous, pending, declined and suspended visitors on dire
   assert.equal((await guardRequest(new Request('https://example.test/serveur',{headers:headers(f.owner)}),env,run)).status,200);
  }finally{f.sql.close()}
 });
+
+test('public Pages deployment never trusts unsigned user identity headers',async()=>{
+ const f=mailDatabase();try{
+  let dispatched=0;
+  const run=async()=>{dispatched++;return new Response('private')};
+  const headers={'oai-authenticated-user-id':'forged-owner','oai-authenticated-user-email':f.owner.email};
+  for(const pathname of ['/api/mail','/api/admin','/pdf']){
+   await assert.rejects(
+    ()=>guardRequest(new Request('https://warlike-server.pages.dev'+pathname,{headers}),{DB:f.db,WARLIKE_OWNER_EMAIL:f.owner.email},run),
+    e=>e instanceof HttpError&&e.status===401
+   );
+  }
+  assert.equal(dispatched,0);
+ }finally{f.sql.close()}
+});
