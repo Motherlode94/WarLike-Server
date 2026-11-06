@@ -124,3 +124,12 @@ Avant toute mise en production de la copie Pages :
 5. Ne pas exposer de données de production avant d'avoir validé l'isolation des comptes et la politique de partage privé.
 
 Ce dépôt ne propose ni SMTP/IMAP ni un fournisseur d'envoi d'e-mails vers Internet. La connexion CodeDuo est indépendante tant qu'une intégration d'identités serveur à serveur n'est pas définie.
+
+## Contrôles d'exploitation Mail / Server
+
+- `GET /api/health` est volontairement accessible sans connexion et ne révèle ni e-mails, ni secrets, ni contenu de la base ; il vérifie les bindings DB/R2, la clé de liaison, le propriétaire et les tables D1 indispensables aux boîtes.
+- Les API privées, notamment `/api/mail` et `/api/admin`, restent fermées aux requêtes non authentifiées. Sur les domaines publics `*.pages.dev`, les en-têtes `oai-authenticated-*` envoyés par un navigateur **ne sont pas une preuve d'identité** et sont rejetés sans pont HMAC valide.
+- La clé `WARLIKE_BRIDGE_KEY` doit être exactement identique sur Mail et Server, stockée uniquement dans les secrets de déploiement. L'identité transmise au serveur est signée pour la méthode, le chemin, le corps et la session ; une vérification de nonce évite le rejeu.
+- Configurer `DB` (D1), `BUCKET` (R2), `WARLIKE_OWNER_EMAIL` et `WARLIKE_BRIDGE_KEY` sur l'environnement d'hébergement réellement utilisé. Appliquer les migrations D1 avant le premier accès.
+- Cloudflare Pages et l'hébergement Sites n'échangent pas automatiquement leurs bindings, secrets ou identités ; une compilation verte ne démontre pas un service utilisable.
+- Envois interpersonnels et brouillons restent internes : aucun courrier vers l'Internet extérieur tant qu'un vrai transport externe n'a pas été intégré.
