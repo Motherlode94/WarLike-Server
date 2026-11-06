@@ -133,3 +133,9 @@ Ce dépôt ne propose ni SMTP/IMAP ni un fournisseur d'envoi d'e-mails vers Inte
 - Configurer `DB` (D1), `BUCKET` (R2), `WARLIKE_OWNER_EMAIL` et `WARLIKE_BRIDGE_KEY` sur l'environnement d'hébergement réellement utilisé. Appliquer les migrations D1 avant le premier accès.
 - Cloudflare Pages et l'hébergement Sites n'échangent pas automatiquement leurs bindings, secrets ou identités ; une compilation verte ne démontre pas un service utilisable.
 - Envois interpersonnels et brouillons restent internes : aucun courrier vers l'Internet extérieur tant qu'un vrai transport externe n'a pas été intégré.
+
+## Cloudflare Pages `pages.dev` — état public
+
+Le projet Pages `warlike-server.pages.dev` ne déploie **pas** le serveur applicatif Vinext. Il héberge une page statique de statut dans `pages-public/` et une fonction de diagnostic en lecture seule dans `functions/api/health.js`. La configuration Pages utilise `exit 0` et le dossier de sortie `pages-public` ; les réponses de santé sont intentionnellement `503` tant que l'application Workers et ses bindings ne sont pas déployés dans un environnement compatible. **Ne pas interpréter un déploiement Pages réussi comme une messagerie fonctionnelle.**
+
+Pour l'application complète, utiliser une cible Cloudflare Workers compatible Vinext, appliquer les migrations D1 et configurer secrets, bindings et fournisseur d'identité fiable. L'hébergement privé Sites existant est une plateforme distincte.
