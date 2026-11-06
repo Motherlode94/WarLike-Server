@@ -74,3 +74,15 @@ test('public Pages deployment never trusts unsigned user identity headers',async
   assert.equal(dispatched,0);
  }finally{f.sql.close()}
 });
+
+test('server health is public, read-only and never authenticates private routes',async()=>{
+ let hits=0;
+ const run=async()=>{hits++;return Response.json({service:'warlike-server',ready:true})};
+ const env={WARLIKE_OWNER_EMAIL:'owner@example.test'};
+ const response=await guardRequest(new Request('https://warlike-server.pages.dev/api/health'),env,run);
+ assert.equal(response.status,200);
+ assert.equal(hits,1);
+ await assert.rejects(()=>guardRequest(new Request('https://warlike-server.pages.dev/api/mail'),env,run),
+   error=>error instanceof HttpError&&error.status===401);
+ assert.equal(hits,1);
+});
