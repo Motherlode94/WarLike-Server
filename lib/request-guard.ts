@@ -7,6 +7,10 @@ const ORIGIN = 'https://warlike-server.vikktor7.chatgpt.site';
 
 export async function guardRequest(request: Request, env: { DB?: D1Database; WARLIKE_BRIDGE_KEY?: string; WARLIKE_OWNER_EMAIL?: string }, run: (request: Request) => Response | Promise<Response>, development=false): Promise<Response> {
   const url = new URL(request.url), api = url.pathname.startsWith('/api/');
+  // Only the operational health endpoint is public. Never expose private mailbox data here.
+  if (url.pathname === '/api/health' && request.method === 'GET') {
+    return withRequestIdentity(null, null, () => run(request));
+  }
   const signed = request.headers.has('x-warlike-identity') || request.headers.has('x-warlike-signature');
   if (signed && url.pathname !== '/api/mail') throw new HttpError(403, 'Cette interface exige une connexion directe.');
   const page=!development&&protectedPage(url.pathname);
