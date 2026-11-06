@@ -10,6 +10,9 @@ export async function guardRequest(request: Request, env: { DB?: D1Database; WAR
   const signed = request.headers.has('x-warlike-identity') || request.headers.has('x-warlike-signature');
   if (signed && url.pathname !== '/api/mail') throw new HttpError(403, 'Cette interface exige une connexion directe.');
   const page=!development&&protectedPage(url.pathname);
+  // Cloudflare Pages hosts are public: user identity headers there are client-controlled.
+  // Only a verified HMAC bridge may authenticate a request on that host.
+  if (!development && url.hostname.endsWith('.pages.dev') && !signed && (api || page)) throw new HttpError(401, 'Accès privé requis : utilise WarLike Server avec une identité authentifiée.');
   if (!api&&!page) return withRequestIdentity(null, null, () => run(request));
   if (!['GET', 'HEAD', 'POST'].includes(request.method)) throw new HttpError(405, 'Méthode non autorisée.');
   if (request.method === 'POST') {
