@@ -68,3 +68,15 @@ export async function session(db:D1Database,token:unknown,now=Date.now()):Promis
 export async function logout(db:D1Database,token:unknown) {
   if(typeof token==='string'&&/^[A-Za-z0-9_-]{43}$/.test(token))await db.prepare('DELETE FROM warlike_sessions WHERE token_hash=?').bind(await digest(token)).run();
 }
+export async function changePassword(db:D1Database,token:unknown,current:unknown,next:unknown,now=Date.now()) {
+ const user=await session(db,token,now);if(!user)throw new HttpError(401,'Connexion requise.');
+ await rateLimit(db,user.id,'warlike-password-change',5,900,now);
+ if(!validPassword(next))throw new HttpError(400,'Le mot de passe doit contenir entre 12 et 256 caractères.');
+ const row=await db.prepare('SELECT salt,verifier,iterations,version FROM warlike_credentials WHERE member_id=?').bind(user.id).first<{salt:string;verifier:string;iterations:number;version:number}>();
+ if(!row||typeof current!=='string'||current.length>256||!equal(await derive(current,row.salt,row.iterations),unb64(row.verifier)))throw new HttpError(401,'Mot de passe actuel incorrect.');
+ const salt=b64(random(32)),verifier=b64(await derive(next,salt,ITERATIONS));
+ const updated=await db.prepare('UPDATE warlike_credentials SET salt=?,verifier=?,iterations=?,version=version+1,updated_at=? WHERE member_id=? AND version=?').bind(salt,verifier,ITERATIONS,now,user.id,row.version).run();
+ if(!updated.meta.changes)throw new HttpError(409,'Les identifiants ont changé ; reconnecte-toi.');
+ // All sessions are invalid immediately through the credential version check.
+ await db.prepare('DELETE FROM warlike_sessions WHERE member_id=?').bind(user.id).run();
+}
