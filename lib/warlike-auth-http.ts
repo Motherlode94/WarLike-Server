@@ -4,7 +4,7 @@ import {login,logout,session} from './warlike-auth.ts';
 // This adapter is not mounted until the surrounding access gateway is migrated.
 const COOKIE='__Host-warlike_session';
 const MAX_AGE=8*60*60;
-function tokenFrom(request:Request):string|null {
+export function tokenFrom(request:Request):string|null {
  const cookies=request.headers.get('cookie')?.split(';')||[];
  const values=cookies.map(x=>x.trim()).filter(x=>x.startsWith(COOKIE+'='));
  return values.length===1?values[0].slice(COOKIE.length+1):null;
