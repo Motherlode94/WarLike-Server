@@ -13,6 +13,8 @@ test('le contrôle WarLike exige une session réelle et rejette les origines ét
  await assert.rejects(guardRequest(new Request(url,{headers:{'oai-authenticated-user-id':'forged','oai-authenticated-user-email':owner.email}}),env,run),{status:401});
  await assert.rejects(guardRequest(new Request('https://server.example.test/api/mail',{headers:{'x-warlike-identity':'old'}}),env,run),{status:403});
  const headers={cookie:`__Host-warlike_session=${token}`};
+ await assert.rejects(guardRequest(new Request(url,{headers}),env,run),{status:403});
+ sql.prepare('UPDATE warlike_credentials SET must_change=0 WHERE member_id=?').run(alice.id);
  const ok=await guardRequest(new Request(url,{headers}),env,run);
  assert.equal(((await ok.json()) as any).identity.principal.id,alice.id);
  await assert.rejects(guardRequest(new Request(url,{method:'POST',headers:{...headers,origin:'https://attacker.test','content-type':'application/json'},body:'{}'}),env,run),{status:403});
