@@ -23,3 +23,24 @@ test('connexion HTTP : cookie privé, origine contrôlée et déconnexion',async
  assert.equal((await (await current()).json() as any).user,null);
  sql.close();
 });
+
+test('initialisation unique du propriétaire et gestion réservée à lui',async()=>{
+ const {db,sql,owner,alice}=mailDatabase();
+ const origin='https://server.example.test',secret='une-cle-temporaire-de-configuration-longue';
+ const setup={secret,ownerEmail:owner.email};
+ const post=(route:string,data:unknown,cookie='')=>new Request(origin+'/api/warlike-auth/'+route,{method:'POST',headers:{origin,'content-type':'application/json',cookie},body:JSON.stringify(data)});
+ const init={setupCode:secret,login:'admin',password:'un-mot-de-passe-admin-long'};
+ assert.equal((await authHttp(post('bootstrap',{...init,setupCode:'incorrect'}),db,'client',setup)).status,403);
+ assert.equal((await authHttp(post('bootstrap',init),db,'client',setup)).status,200);
+ assert.equal((await authHttp(post('bootstrap',init),db,'client',setup)).status,409);
+ const authenticated=await authHttp(post('login',{login:'admin',password:init.password}),db,'client',setup);
+ const cookie=authenticated.headers.get('set-cookie')!.split(';')[0];
+ const create={memberId:alice.id,login:'alice',password:'un-mot-de-passe-membre-long'};
+ assert.equal((await authHttp(post('credentials',create),db,'client',setup)).status,403);
+ assert.equal((await authHttp(post('credentials',create,cookie),db,'client',setup)).status,200);
+ const member=await authHttp(post('login',{login:create.login,password:create.password}),db,'client',setup);
+ assert.equal(member.status,200);
+ const memberCookie=member.headers.get('set-cookie')!.split(';')[0];
+ assert.equal((await authHttp(post('credentials',create,memberCookie),db,'client',setup)).status,403);
+ sql.close();
+});
