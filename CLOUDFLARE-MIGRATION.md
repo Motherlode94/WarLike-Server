@@ -7,3 +7,5 @@ Construire avec `node node_modules/vite/bin/vite.js build --config vite.cloudfla
 Avant la mise en production : configurer `WARLIKE_OWNER_EMAIL` en secret du Worker, activer R2 puis lier `BUCKET`, déployer le Worker, lier `WARLIKE_APP` au projet Pages et vérifier les routes et ressources. Copier et réconcilier de nouveau les données de l'ancien serveur juste avant le basculement. Les sessions ne sont pas transférables entre domaines ; les membres se reconnectent avec leurs identifiants WarLike.
 
 La base créée et sa copie initiale des comptes sont une préparation. Elles ne suivent pas automatiquement les modifications faites sur l'ancien serveur. Les fichiers R2 n'ont pas encore été transférés. Ne pas déployer ce relais avant que la base et les liaisons soient vérifiées.
+
+Le stockage R2 dédié est créé. Le runtime utilise les liaisons DB et BUCKET ; son accès Pages est à valider après publication. Les comptes de la source doivent être comparés au moment de la bascule ; les sessions devront se reconnecter.
