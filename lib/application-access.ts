@@ -19,6 +19,7 @@ export async function authorizePrincipal(db:D1Database,user:Principal,url:URL){
  if(!enrollment)assertHubMembership(user,(await hubMembership(db,user)).status);
  if((/^\/(?:admin|inscriptions)(?:\/|$)/.test(url.pathname)||url.pathname==='/api/admin'||url.pathname==='/api/hub'&&url.searchParams.get('queue')==='1')&&!['owner','referent'].includes(user.role))throw new HttpError(403,'Espace réservé aux responsables.');
  if(/^\/serveur(?:\/|$)/.test(url.pathname)&&user.role!=='owner')throw new HttpError(403,'Infrastructure réservée au propriétaire.');
+ if(/^\/comptes(?:\/|$)/.test(url.pathname)&&user.role!=='owner')throw new HttpError(403,'Gestion des comptes réservée au propriétaire.');
  return user;
 }
 export async function authorizeApplication(db:D1Database,auth:ForwardedUser,ownerEmail:string,fromMail:boolean,url:URL){
