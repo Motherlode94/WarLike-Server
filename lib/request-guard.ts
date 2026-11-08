@@ -21,6 +21,7 @@ export async function guardRequest(request: Request, env: { DB?: D1Database; WAR
   }
   if(enabled&&['/connexion','/configuration'].includes(url.pathname))return withWarLikeAnonymous(()=>run(request));
   const signed = request.headers.has('x-warlike-identity') || request.headers.has('x-warlike-signature');
+  if(enabled&&signed)throw new HttpError(403,'Ancienne connexion désactivée.');
   if (signed && url.pathname !== '/api/mail') throw new HttpError(403, 'Cette interface exige une connexion directe.');
   const page=!development&&protectedPage(url.pathname);
   if(enabled&&!signed&&env.DB){
