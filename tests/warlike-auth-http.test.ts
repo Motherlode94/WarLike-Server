@@ -34,7 +34,11 @@ test('initialisation unique du propriétaire et gestion réservée à lui',async
  assert.equal((await authHttp(post('bootstrap',init),db,'client',setup)).status,200);
  assert.equal((await authHttp(post('bootstrap',init),db,'client',setup)).status,409);
  const authenticated=await authHttp(post('login',{login:'admin',password:init.password}),db,'client',setup);
- const cookie=authenticated.headers.get('set-cookie')!.split(';')[0];
+ let cookie=authenticated.headers.get('set-cookie')!.split(';')[0];
+ assert.equal((await authHttp(post('credentials',{memberId:alice.id,login:'auser',password:'mot-de-passe-initial-valide'},cookie),db,'client',setup)).status,403);
+ assert.equal((await authHttp(post('password',{currentPassword:init.password,newPassword:'nouveau-mot-de-passe-admin',newLogin:'nouveladmin'},cookie),db,'client',setup)).status,200);
+ const verified=await authHttp(post('login',{login:'nouveladmin',password:'nouveau-mot-de-passe-admin'}),db,'client',setup);
+ cookie=verified.headers.get('set-cookie')!.split(';')[0];
  const create={memberId:alice.id,login:'alice',password:'un-mot-de-passe-membre-long'};
  assert.equal((await authHttp(post('credentials',create),db,'client',setup)).status,403);
  assert.equal((await authHttp(post('credentials',create,cookie),db,'client',setup)).status,200);
@@ -42,6 +46,10 @@ test('initialisation unique du propriétaire et gestion réservée à lui',async
  assert.equal(member.status,200);
  const memberCookie=member.headers.get('set-cookie')!.split(';')[0];
  assert.equal((await authHttp(post('credentials',create,memberCookie),db,'client',setup)).status,403);
+ assert.equal((await authHttp(post('member',{login:'membre-temporaire',password:'mot-de-passe-temporaire',displayName:'Membre'},memberCookie),db,'client',setup)).status,403);
+ const created=await authHttp(post('member',{login:'membre-temporaire',password:'mot-de-passe-temporaire',displayName:'Membre'},cookie),db,'client',setup);
+ assert.equal(created.status,201);const createdInfo=await created.json() as {memberId:string;address:string};assert.match(createdInfo.memberId,/^WL-/);assert.equal(createdInfo.address,'membre-temporaire@warlike.maill.dev');
+ assert.equal((await authHttp(post('login',{login:'membre-temporaire',password:'mot-de-passe-temporaire'}),db,'client',setup)).status,200);
  sql.close();
 });
 
@@ -52,10 +60,10 @@ test('changement de mot de passe et révocation des sessions',async()=>{
  const first=await authHttp(post('login',{login:'alice',password:'ancien-mot-de-passe-valide'}),db,'test');
  const cookie=first.headers.get('set-cookie')!.split(';')[0];
  assert.equal((await authHttp(post('password',{currentPassword:'incorrect',newPassword:'nouveau-mot-de-passe-valide'},cookie),db,'test')).status,401);
- const changed=await authHttp(post('password',{currentPassword:'ancien-mot-de-passe-valide',newPassword:'nouveau-mot-de-passe-valide'},cookie),db,'test');
+ const changed=await authHttp(post('password',{currentPassword:'ancien-mot-de-passe-valide',newPassword:'nouveau-mot-de-passe-valide',newLogin:'nouvellealice'},cookie),db,'test');
  assert.equal(changed.status,200);assert.match(changed.headers.get('set-cookie')!,/Max-Age=0/);
  assert.equal((await (await authHttp(new Request(origin+'/api/warlike-auth/session',{headers:{cookie}}),db,'test')).json() as any).user,null);
  assert.equal((await authHttp(post('login',{login:'alice',password:'ancien-mot-de-passe-valide'}),db,'test')).status,401);
- assert.equal((await authHttp(post('login',{login:'alice',password:'nouveau-mot-de-passe-valide'}),db,'test')).status,200);
+ assert.equal((await authHttp(post('login',{login:'nouvellealice',password:'nouveau-mot-de-passe-valide'}),db,'test')).status,200);
  sql.close();
 });
