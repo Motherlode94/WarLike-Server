@@ -1,0 +1,3 @@
+'use client';
+import {useState} from 'react';
+export default function Signout(){const [error,setError]=useState('');async function logout(){try{const r=await fetch('/api/warlike-auth/logout',{method:'POST'});if(!r.ok)throw Error('Déconnexion impossible.');location.assign('/connexion');}catch(e){setError(e instanceof Error?e.message:'Déconnexion impossible.');}}return <main style={{maxWidth:440,margin:'8vh auto',padding:24,fontFamily:'system-ui'}}><h1>Déconnexion</h1><p>Fermer ta session WarLike sur ce site ?</p><button onClick={()=>void logout()}>Se déconnecter</button><p role="alert">{error}</p><a href="/">Retour</a></main>;}
