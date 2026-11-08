@@ -4,7 +4,7 @@ import { withRequestIdentity,withWarLikeIdentity,withWarLikeAnonymous } from './
 import { consumeNonce, rateLimit } from './security-store.ts';
 import { HttpError, readLimitedBytes } from './security.ts';
 import {authHttp,tokenFrom} from './warlike-auth-http.ts';
-import {session} from './warlike-auth.ts';
+import {session,mustChange} from './warlike-auth.ts';
 const ORIGIN = 'https://warlike-server.vikktor7.chatgpt.site';
 
 export async function guardRequest(request: Request, env: { DB?: D1Database; WARLIKE_BRIDGE_KEY?: string; WARLIKE_OWNER_EMAIL?: string; WARLIKE_AUTH_ENABLED?: string; WARLIKE_BOOTSTRAP_SECRET?: string }, run: (request: Request) => Response | Promise<Response>, development=false): Promise<Response> {
@@ -27,6 +27,10 @@ export async function guardRequest(request: Request, env: { DB?: D1Database; WAR
   if(enabled&&!signed&&env.DB){
     const principal=await session(env.DB,tokenFrom(request));
     if(principal){
+      if((api||page||url.pathname==='/')&&await mustChange(env.DB,principal.id)&&!['/mot-de-passe','/deconnexion'].includes(url.pathname)){
+        if(api)throw new HttpError(403,'Modifie tes identifiants temporaires avant de continuer.');
+        return new Response(null,{status:303,headers:{Location:'/mot-de-passe','Cache-Control':'no-store'}});
+      }
       if(!['GET','HEAD','POST'].includes(request.method))throw new HttpError(405,'Méthode non autorisée.');
       if(request.method==='POST'&&(request.headers.get('origin')!==url.origin||request.headers.get('sec-fetch-site')==='cross-site'))throw new HttpError(403,'Origine refusée.');
       if(request.method==='POST'){
