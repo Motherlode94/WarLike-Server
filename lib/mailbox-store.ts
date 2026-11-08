@@ -8,6 +8,8 @@ export async function mailboxInfo(db: D1Database, memberId: string) {
   return db.prepare('SELECT address,given_name,family_name,updated_at FROM mailboxes WHERE member_id=?').bind(memberId).first();
 }
 export async function hasMailboxAccess(db: D1Database, user: Principal, token = requestIdentity()?.mailboxToken) {
+  // A validated WarLike session already authenticates this exact member.
+  if (requestIdentity()?.principal?.id === user.id) return true;
   // Owner and referents already administer the shared team inbox through Sites.
   if (user.role === 'owner' || user.role === 'referent') return true;
   if (!await db.prepare('SELECT member_id FROM mailboxes WHERE member_id=?').bind(user.id).first()) return true;
