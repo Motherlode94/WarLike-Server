@@ -1,0 +1,24 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {mailDatabase} from './mail-database.ts';
+import {setCredential,login} from '../lib/warlike-auth.ts';
+import {guardRequest} from '../lib/request-guard.ts';
+import {requestIdentity} from '../lib/identity-context.ts';
+test('le contrôle WarLike exige une session réelle et rejette les origines étrangères',async()=>{
+ const {db,sql,owner,alice}=mailDatabase(),env={DB:db,WARLIKE_AUTH_ENABLED:'true',WARLIKE_OWNER_EMAIL:owner.email};
+ await setCredential(db,owner,alice.id,'alice','un-mot-de-passe-assez-long');
+ const {token}=await login(db,'alice','un-mot-de-passe-assez-long','client');
+ const url='https://server.example.test/api/hub';
+ const run=()=>Response.json({identity:requestIdentity()});
+ await assert.rejects(guardRequest(new Request(url,{headers:{'oai-authenticated-user-id':'forged','oai-authenticated-user-email':owner.email}}),env,run),{status:401});
+ await assert.rejects(guardRequest(new Request('https://server.example.test/api/mail',{headers:{'x-warlike-identity':'old'}}),env,run),{status:403});
+ const headers={cookie:`__Host-warlike_session=${token}`};
+ await assert.rejects(guardRequest(new Request(url,{headers}),env,run),{status:403});
+ sql.prepare('UPDATE warlike_credentials SET must_change=0 WHERE member_id=?').run(alice.id);
+ const ok=await guardRequest(new Request(url,{headers}),env,run);
+ assert.equal(((await ok.json()) as any).identity.principal.id,alice.id);
+ await assert.rejects(guardRequest(new Request(url,{method:'POST',headers:{...headers,origin:'https://attacker.test','content-type':'application/json'},body:'{}'}),env,run),{status:403});
+ const publicPage=await guardRequest(new Request('https://server.example.test/',{headers:{'oai-authenticated-user-id':'forged','oai-authenticated-user-email':owner.email}}),env,run);
+ assert.equal(((await publicPage.json()) as any).identity.warlikeAnonymous,true);
+ sql.close();
+});

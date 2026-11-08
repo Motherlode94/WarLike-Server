@@ -21,6 +21,9 @@ const SIGN_OUT_PATH = "/signout-with-chatgpt";
 const CALLBACK_PATH = "/callback";
 
 export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
+  const principal = requestIdentity()?.principal;
+  if (principal) return {userId:principal.id,email:principal.email,displayName:principal.name,fullName:principal.name};
+  if (requestIdentity()?.warlikeAnonymous) return null;
   const requestHeaders = await headers();
   if(requestHeaders.get("x-warlike-identity"))return requestIdentity()?.user || null;
   const userId = requestHeaders.get(USER_ID_HEADER);
@@ -52,11 +55,13 @@ export async function requireChatGPTUser(
 }
 
 export function chatGPTSignInPath(returnTo: string): string {
+  if(env.WARLIKE_AUTH_ENABLED==='true')return "/connexion";
   const safeReturnTo = safeRelativeReturnPath(returnTo);
   return `${SIGN_IN_PATH}?return_to=${encodeURIComponent(safeReturnTo)}`;
 }
 
 export function chatGPTSignOutPath(returnTo = "/"): string {
+  if(env.WARLIKE_AUTH_ENABLED==='true')return "/deconnexion";
   const safeReturnTo = safeRelativeReturnPath(returnTo);
   return `${SIGN_OUT_PATH}?return_to=${encodeURIComponent(safeReturnTo)}`;
 }
