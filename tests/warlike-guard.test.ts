@@ -11,6 +11,7 @@ test('le contrôle WarLike exige une session réelle et rejette les origines ét
  const url='https://server.example.test/api/hub';
  const run=()=>Response.json({identity:requestIdentity()});
  await assert.rejects(guardRequest(new Request(url,{headers:{'oai-authenticated-user-id':'forged','oai-authenticated-user-email':owner.email}}),env,run),{status:401});
+ await assert.rejects(guardRequest(new Request('https://server.example.test/api/mail',{headers:{'x-warlike-identity':'old'}}),env,run),{status:403});
  const headers={cookie:`__Host-warlike_session=${token}`};
  const ok=await guardRequest(new Request(url,{headers}),env,run);
  assert.equal(((await ok.json()) as any).identity.principal.id,alice.id);
