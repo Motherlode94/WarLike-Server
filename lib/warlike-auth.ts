@@ -2,9 +2,11 @@ import {HttpError} from './security.ts';
 import {digest,rateLimit} from './security-store.ts';
 import type {Principal} from './policy.ts';
 import {generatedPassword,passwordRecord,PASSWORD_ITERATIONS} from './mailbox-policy.ts';
+import {scryptSync} from 'node:crypto';
 
 // Foundation for the future WarLike login. Nothing calls it from HTTP yet.
-const ITERATIONS=600_000;
+// scrypt N=2^14, r=8, p=5 (16 MiB); supported by Workers node:crypto.
+const ITERATIONS=16_384;
 const TTL=8*60*60*1000;
 const enc=new TextEncoder();
 const b64=(b:Uint8Array)=>btoa(Array.from(b,n=>String.fromCharCode(n)).join(''));
@@ -17,9 +19,10 @@ export function normalizedLogin(value:unknown):string {
   return login;
 }
 async function derive(password:string,salt:string,iterations:number):Promise<Uint8Array> {
-  const key=await crypto.subtle.importKey('raw',enc.encode(password),'PBKDF2',false,['deriveBits']);
-  return new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',salt:unb64(salt),iterations,hash:'SHA-256'},key,256));
+  if(iterations!==ITERATIONS)throw new Error('Paramètres de mot de passe non reconnus.');
+  return new Uint8Array(scryptSync(password,unb64(salt),32,{N:iterations,r:8,p:5,maxmem:64*1024*1024}));
 }
+export async function checkKdf():Promise<boolean>{return (await derive('warlike-kdf-check',b64(new Uint8Array(32)),ITERATIONS)).length===32;}
 function validPassword(value:unknown):value is string {
   return typeof value==='string'&&value.length>=12&&value.length<=256&&enc.encode(value).length<=1024;
 }
