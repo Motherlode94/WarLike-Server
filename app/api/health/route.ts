@@ -16,5 +16,5 @@ export async function GET(){
     }catch{databaseReady=false;schemaReady=false}
   }
   const ready=Object.values(bindings).every(Boolean)&&databaseReady&&schemaReady;
-  return Response.json({service:'warlike-server',ready,databaseReady,schemaReady,bindings,authentication:'ChatGPT identity + signed Mail bridge',mailTransport:'internal-only'},{status:ready?200:503,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
+  return Response.json({service:'warlike-server',ready,databaseReady,schemaReady,bindings,authentication:env.WARLIKE_AUTH_ENABLED==='true'?'WarLike password':'external identity',mailTransport:'internal-only'},{status:ready?200:503,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
 }

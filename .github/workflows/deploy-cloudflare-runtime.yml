@@ -33,3 +33,5 @@ jobs:
       - run: node node_modules/wrangler/bin/wrangler.js deploy --dry-run --config dist/server/wrangler.json
       - name: Deploy private runtime
         run: node node_modules/wrangler/bin/wrangler.js deploy --config dist/server/wrangler.json
+
+# The production runtime reports its configured authentication mode.
