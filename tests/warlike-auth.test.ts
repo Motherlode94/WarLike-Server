@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {mailDatabase} from './mail-database.ts';
-import {setCredential,login,session,logout} from '../lib/warlike-auth.ts';
+import {setCredential,login,session,logout,bootstrapTeam} from '../lib/warlike-auth.ts';
 
 test('comptes WarLike : rôles existants, sessions révocables et suspension',async()=>{
  const {db,sql,owner,alice,bob}=mailDatabase();
@@ -29,5 +29,19 @@ test('les tentatives de connexion sont limitées',async()=>{
  const {db,sql}=mailDatabase();
  for(let i=0;i<5;i++)await assert.rejects(login(db,'inconnu','mot-de-passe-incorrect','ip-test'),{status:401});
  await assert.rejects(login(db,'inconnu','mot-de-passe-incorrect','ip-test'),{status:429});
+ sql.close();
+});
+
+test('la création initiale prépare un propriétaire et neuf membres atomiquement',async()=>{
+ const {db,sql,owner}=mailDatabase();
+ const admin={login:'admin-temporaire',password:'mot-de-passe-admin-temporaire'};
+ const members=Array.from({length:9},(_,i)=>({login:'membre-temporaire-'+i,password:'mot-de-passe-temporaire-'+i,displayName:'Collaborateur '+i}));
+ const broken=members.map(x=>({...x}));broken[8].login=broken[0].login;
+ await assert.rejects(bootstrapTeam(db,owner.email,admin,broken));
+ assert.equal((sql.prepare('SELECT COUNT(*) AS n FROM warlike_credentials').get() as any).n,0);
+ await bootstrapTeam(db,owner.email,admin,members);
+ assert.equal((sql.prepare('SELECT COUNT(*) AS n FROM warlike_credentials WHERE must_change=1').get() as any).n,10);
+ assert.equal((sql.prepare("SELECT COUNT(*) AS n FROM members WHERE email LIKE '%@warlike.local'").get() as any).n,9);
+ await assert.rejects(bootstrapTeam(db,owner.email,admin,members));
  sql.close();
 });
