@@ -1,6 +1,10 @@
 name: Deploy WarLike Server runtime
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/deploy-cloudflare-runtime.yml'
 permissions:
   contents: read
 jobs:
