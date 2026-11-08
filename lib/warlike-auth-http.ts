@@ -1,5 +1,5 @@
 import {HttpError,readJsonObject,errorResponse} from './security.ts';
-import {login,logout,session,bootstrapOwner,setCredential} from './warlike-auth.ts';
+import {login,logout,session,bootstrapOwner,setCredential,changePassword} from './warlike-auth.ts';
 import {digest,rateLimit} from './security-store.ts';
 
 // This adapter is not mounted until the surrounding access gateway is migrated.
@@ -48,6 +48,11 @@ export async function authHttp(request:Request,db:D1Database,clientId:string,set
    if(typeof data.memberId!=='string'||data.memberId.length>100)throw new HttpError(400,'Membre invalide.');
    await setCredential(db,actor,data.memberId,data.login,data.password);
    return response({ok:true});
+  }
+  if(path==='/api/warlike-auth/password'){
+   const data=await readJsonObject(request,2048);
+   await changePassword(db,tokenFrom(request),data.currentPassword,data.newPassword);
+   return response({ok:true},200,`${COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax`);
   }
   if(path!=='/api/warlike-auth/login')throw new HttpError(404,'Route introuvable.');
   const data=await readJsonObject(request,2048);
