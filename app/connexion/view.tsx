@@ -7,7 +7,7 @@ export default function Login(){
   e.preventDefault();setBusy(true);setError('');
   try{
    const res=await fetch('/api/warlike-auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({login:username,password})});
-   const data=await res.json();if(!res.ok)throw new Error(data.error||'Connexion impossible.');
+   const data=await res.json() as {error?:string};if(!res.ok)throw new Error(data.error||'Connexion impossible.');
    setPassword('');window.location.assign('/');
   }catch(e){setError(e instanceof Error?e.message:'Connexion impossible.');setPassword('');}finally{setBusy(false);}
  }
