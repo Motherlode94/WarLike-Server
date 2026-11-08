@@ -44,3 +44,18 @@ test('initialisation unique du propriétaire et gestion réservée à lui',async
  assert.equal((await authHttp(post('credentials',create,memberCookie),db,'client',setup)).status,403);
  sql.close();
 });
+
+test('changement de mot de passe et révocation des sessions',async()=>{
+ const {db,sql,owner,alice}=mailDatabase(),origin='https://server.example.test';
+ await setCredential(db,owner,alice.id,'alice','ancien-mot-de-passe-valide');
+ const post=(route:string,data:unknown,cookie='')=>new Request(origin+'/api/warlike-auth/'+route,{method:'POST',headers:{origin,'content-type':'application/json',cookie},body:JSON.stringify(data)});
+ const first=await authHttp(post('login',{login:'alice',password:'ancien-mot-de-passe-valide'}),db,'test');
+ const cookie=first.headers.get('set-cookie')!.split(';')[0];
+ assert.equal((await authHttp(post('password',{currentPassword:'incorrect',newPassword:'nouveau-mot-de-passe-valide'},cookie),db,'test')).status,401);
+ const changed=await authHttp(post('password',{currentPassword:'ancien-mot-de-passe-valide',newPassword:'nouveau-mot-de-passe-valide'},cookie),db,'test');
+ assert.equal(changed.status,200);assert.match(changed.headers.get('set-cookie')!,/Max-Age=0/);
+ assert.equal((await (await authHttp(new Request(origin+'/api/warlike-auth/session',{headers:{cookie}}),db,'test')).json() as any).user,null);
+ assert.equal((await authHttp(post('login',{login:'alice',password:'ancien-mot-de-passe-valide'}),db,'test')).status,401);
+ assert.equal((await authHttp(post('login',{login:'alice',password:'nouveau-mot-de-passe-valide'}),db,'test')).status,200);
+ sql.close();
+});
