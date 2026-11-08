@@ -35,3 +35,5 @@ jobs:
         run: node node_modules/wrangler/bin/wrangler.js deploy --config dist/server/wrangler.json
 
 # The production runtime reports its configured authentication mode.
+
+# Deploy the corrected credentials form.
