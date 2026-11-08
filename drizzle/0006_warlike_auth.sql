@@ -5,6 +5,7 @@ CREATE TABLE warlike_credentials (
   verifier TEXT NOT NULL,
   iterations INTEGER NOT NULL,
   version INTEGER NOT NULL DEFAULT 1,
+  must_change INTEGER NOT NULL DEFAULT 1,
   updated_at INTEGER NOT NULL
 );
 --> statement-breakpoint
