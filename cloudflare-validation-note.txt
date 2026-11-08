@@ -1,0 +1,1 @@
+Validation du service WarLike Server sur Cloudflare avant mise en production.
