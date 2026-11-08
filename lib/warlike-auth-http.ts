@@ -1,5 +1,5 @@
 import {HttpError,readJsonObject,errorResponse} from './security.ts';
-import {login,logout,session,bootstrapOwner,setCredential,changePassword,mustChange,createMember,bootstrapTeam} from './warlike-auth.ts';
+import {login,logout,session,bootstrapOwner,setCredential,changePassword,mustChange,createMember,bootstrapTeam,checkKdf} from './warlike-auth.ts';
 import {digest,rateLimit} from './security-store.ts';
 
 // This adapter is not mounted until the surrounding access gateway is migrated.
@@ -29,7 +29,7 @@ export async function authHttp(request:Request,db:D1Database,clientId:string,set
    await logout(db,tokenFrom(request));
    return response({ok:true},200,`${COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax`);
   }
-  if(path==='/api/warlike-auth/bootstrap'||path==='/api/warlike-auth/bootstrap-team'){
+  if(path==='/api/warlike-auth/bootstrap'||path==='/api/warlike-auth/bootstrap-team'||path==='/api/warlike-auth/test-kdf'){
    await rateLimit(db,clientId,'warlike-bootstrap',5,900);
    const data=await readJsonObject(request,8192);
    const expected=setup?.secret||'';
@@ -38,6 +38,7 @@ export async function authHttp(request:Request,db:D1Database,clientId:string,set
    const a=await digest(expected),b=await digest(data.setupCode);let diff=0;
    for(let i=0;i<a.length;i++)diff|=a.charCodeAt(i)^b.charCodeAt(i);
    if(diff!==0)throw new HttpError(403,'Initialisation indisponible.');
+   if(path.endsWith('/test-kdf'))return response({ok:await checkKdf()});
    if(path.endsWith('/bootstrap-team')){
     if(!data.admin||!Array.isArray(data.members))throw new HttpError(400,'Liste des comptes invalide.');
     await bootstrapTeam(db,setup.ownerEmail,data.admin,data.members);
