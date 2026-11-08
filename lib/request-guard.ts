@@ -1,19 +1,48 @@
-import {authorizeApplication,protectedPage} from './application-access.ts';
+import {authorizeApplication,authorizePrincipal,protectedPage} from './application-access.ts';
 import { verifyClaim } from './bridge.ts';
-import { withRequestIdentity } from './identity-context.ts';
+import { withRequestIdentity,withWarLikeIdentity,withWarLikeAnonymous } from './identity-context.ts';
 import { consumeNonce, rateLimit } from './security-store.ts';
 import { HttpError, readLimitedBytes } from './security.ts';
+import {authHttp,tokenFrom} from './warlike-auth-http.ts';
+import {session} from './warlike-auth.ts';
 const ORIGIN = 'https://warlike-server.vikktor7.chatgpt.site';
 
-export async function guardRequest(request: Request, env: { DB?: D1Database; WARLIKE_BRIDGE_KEY?: string; WARLIKE_OWNER_EMAIL?: string }, run: (request: Request) => Response | Promise<Response>, development=false): Promise<Response> {
+export async function guardRequest(request: Request, env: { DB?: D1Database; WARLIKE_BRIDGE_KEY?: string; WARLIKE_OWNER_EMAIL?: string; WARLIKE_AUTH_ENABLED?: string }, run: (request: Request) => Response | Promise<Response>, development=false): Promise<Response> {
   const url = new URL(request.url), api = url.pathname.startsWith('/api/');
   // Only the operational health endpoint is public. Never expose private mailbox data here.
   if (url.pathname === '/api/health' && request.method === 'GET') {
     return withRequestIdentity(null, null, () => run(request));
   }
+  const enabled=env.WARLIKE_AUTH_ENABLED==='true';
+  if(enabled&&!env.DB)throw Error('Database unavailable');
+  if(enabled&&url.pathname.startsWith('/api/warlike-auth/')){
+    if(!env.DB)throw Error('Database unavailable');
+    return authHttp(request,env.DB,request.headers.get('cf-connecting-ip')||'unknown-client');
+  }
+  if(enabled&&url.pathname==='/connexion')return withRequestIdentity(null,null,()=>run(request));
   const signed = request.headers.has('x-warlike-identity') || request.headers.has('x-warlike-signature');
   if (signed && url.pathname !== '/api/mail') throw new HttpError(403, 'Cette interface exige une connexion directe.');
   const page=!development&&protectedPage(url.pathname);
+  if(enabled&&!signed&&env.DB){
+    const principal=await session(env.DB,tokenFrom(request));
+    if(principal){
+      if(!['GET','HEAD','POST'].includes(request.method))throw new HttpError(405,'Méthode non autorisée.');
+      if(request.method==='POST'&&(request.headers.get('origin')!==url.origin||request.headers.get('sec-fetch-site')==='cross-site'))throw new HttpError(403,'Origine refusée.');
+      if(request.method==='POST'){
+        const multipart=url.pathname==='/api/community'&&request.headers.get('content-type')?.startsWith('multipart/form-data;');
+        if(!multipart&&request.headers.get('content-type')?.split(';')[0].trim().toLowerCase()!=='application/json')throw new HttpError(415,'JSON requis.');
+        const limit=url.pathname==='/api/vault'?1500000:multipart?13*1024*1024:['/api/admin','/api/hub'].includes(url.pathname)?8192:40000;
+        const bytes=await readLimitedBytes(request,limit);
+        request=new Request(request,{body:bytes});
+      }
+      if(api||page)await authorizePrincipal(env.DB,principal,url);
+      await rateLimit(env.DB,principal.id,request.method+':'+url.pathname,request.method==='POST'?30:120);
+      return withWarLikeIdentity(principal,()=>run(request));
+    }
+    if(api)throw new HttpError(401,'Connexion WarLike requise.');
+    if(page)return new Response(null,{status:303,headers:{Location:'/connexion'}});
+    return withWarLikeAnonymous(()=>run(request));
+  }
   // Cloudflare Pages hosts are public: user identity headers there are client-controlled.
   // Only a verified HMAC bridge may authenticate a request on that host.
   if (!development && url.hostname.endsWith('.pages.dev') && !signed && (api || page)) throw new HttpError(401, 'Accès privé requis : utilise WarLike Server avec une identité authentifiée.');
