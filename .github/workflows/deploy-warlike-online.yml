@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           repository: Motherlode94/WarLike-Online
-          ref: 6c6f926b9738cb66f576c79270c60679baab5f5f
+          ref: 0c37f5beb44468cb98f4d586cb630c10d838e5e3
           persist-credentials: false
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
         with:
