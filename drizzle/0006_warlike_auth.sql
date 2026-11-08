@@ -7,6 +7,7 @@ CREATE TABLE warlike_credentials (
   version INTEGER NOT NULL DEFAULT 1,
   updated_at INTEGER NOT NULL
 );
+--> statement-breakpoint
 CREATE TABLE warlike_sessions (
   token_hash TEXT PRIMARY KEY NOT NULL,
   member_id TEXT NOT NULL REFERENCES members(id),
@@ -14,5 +15,7 @@ CREATE TABLE warlike_sessions (
   expires_at INTEGER NOT NULL,
   created_at INTEGER NOT NULL
 );
+--> statement-breakpoint
 CREATE INDEX warlike_sessions_member ON warlike_sessions(member_id);
+--> statement-breakpoint
 CREATE INDEX warlike_sessions_expiry ON warlike_sessions(expires_at);
