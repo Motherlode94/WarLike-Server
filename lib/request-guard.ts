@@ -7,7 +7,7 @@ import {authHttp,tokenFrom} from './warlike-auth-http.ts';
 import {session} from './warlike-auth.ts';
 const ORIGIN = 'https://warlike-server.vikktor7.chatgpt.site';
 
-export async function guardRequest(request: Request, env: { DB?: D1Database; WARLIKE_BRIDGE_KEY?: string; WARLIKE_OWNER_EMAIL?: string; WARLIKE_AUTH_ENABLED?: string }, run: (request: Request) => Response | Promise<Response>, development=false): Promise<Response> {
+export async function guardRequest(request: Request, env: { DB?: D1Database; WARLIKE_BRIDGE_KEY?: string; WARLIKE_OWNER_EMAIL?: string; WARLIKE_AUTH_ENABLED?: string; WARLIKE_BOOTSTRAP_SECRET?: string }, run: (request: Request) => Response | Promise<Response>, development=false): Promise<Response> {
   const url = new URL(request.url), api = url.pathname.startsWith('/api/');
   // Only the operational health endpoint is public. Never expose private mailbox data here.
   if (url.pathname === '/api/health' && request.method === 'GET') {
@@ -17,9 +17,9 @@ export async function guardRequest(request: Request, env: { DB?: D1Database; WAR
   if(enabled&&!env.DB)throw Error('Database unavailable');
   if(enabled&&url.pathname.startsWith('/api/warlike-auth/')){
     if(!env.DB)throw Error('Database unavailable');
-    return authHttp(request,env.DB,request.headers.get('cf-connecting-ip')||'unknown-client');
+    return authHttp(request,env.DB,request.headers.get('cf-connecting-ip')||'unknown-client',{secret:env.WARLIKE_BOOTSTRAP_SECRET,ownerEmail:env.WARLIKE_OWNER_EMAIL});
   }
-  if(enabled&&url.pathname==='/connexion')return withRequestIdentity(null,null,()=>run(request));
+  if(enabled&&['/connexion','/configuration'].includes(url.pathname))return withWarLikeAnonymous(()=>run(request));
   const signed = request.headers.has('x-warlike-identity') || request.headers.has('x-warlike-signature');
   if (signed && url.pathname !== '/api/mail') throw new HttpError(403, 'Cette interface exige une connexion directe.');
   const page=!development&&protectedPage(url.pathname);
