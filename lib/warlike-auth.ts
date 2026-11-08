@@ -38,6 +38,15 @@ export async function setCredential(db:D1Database,actor:Principal,targetId:strin
     db.prepare('DELETE FROM warlike_sessions WHERE member_id=?').bind(target.id),
   ]);
 }
+// One-time setup only: never overwrites an existing owner's credentials.
+export async function bootstrapOwner(db:D1Database,ownerEmail:string,loginInput:unknown,password:unknown,now=Date.now()) {
+ if(!validPassword(password))throw new HttpError(400,'Le mot de passe doit contenir entre 12 et 256 caractères.');
+ const owner=await db.prepare("SELECT id FROM members WHERE email=? AND role='owner'").bind(ownerEmail.trim().toLowerCase()).first<{id:string}>();
+ if(!owner)throw new HttpError(409,'Compte propriétaire existant introuvable.');
+ const name=normalizedLogin(loginInput),salt=b64(random(32)),verifier=b64(await derive(password,salt,ITERATIONS));
+ const result=await db.prepare('INSERT OR IGNORE INTO warlike_credentials(member_id,login,salt,verifier,iterations,version,updated_at) VALUES(?,?,?,?,?,1,?)').bind(owner.id,name,salt,verifier,ITERATIONS,now).run();
+ if(!result.meta.changes)throw new HttpError(409,'Initialisation déjà effectuée ou identifiant indisponible.');
+}
 export async function login(db:D1Database,loginInput:unknown,password:unknown,clientId:string,now=Date.now()) {
   let loginName:string;try{loginName=normalizedLogin(loginInput)}catch{loginName='invalid-login'}
   await rateLimit(db,clientId,'warlike-login-client',25,900,now);
