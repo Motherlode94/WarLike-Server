@@ -6,7 +6,7 @@ export const hubApplications:HubApplication[]=[
  {id:'studio',name:'WarLike Studio',subtitle:'STUDIO DE CRÉATION',description:'Retrouve ton studio et continue tes créations.',group:'creation',icon:'sliders',tone:'violet',path:'https://warlike-studio.pages.dev/',external:true,grant:'studio'},
  {id:'engine',name:'WarLike Engine',subtitle:'MOTEUR DE JEU',description:'Construis tes mondes en 2D et 3D, du hub au mode Play.',group:'creation',icon:'code',tone:'mint',path:'https://warlike-engine.pages.dev/',external:true,grant:'engine'},
  {id:'community',name:'Communauté',subtitle:'PARTAGER & DÉCOUVRIR',description:'Montre tes œuvres, écoute et échange avec les créateurs.',group:'community',icon:'users',tone:'orange',path:'/communaute'},
- {id:'mail',name:'WarLike Mail',subtitle:'MESSAGERIE',description:'Tes conversations et tes demandes, au même endroit.',group:'community',icon:'mail',tone:'blue',path:'https://warlike-mail.vikktor7.chatgpt.site',external:true},
+ {id:'mail',name:'WarLike Mail',subtitle:'MESSAGERIE',description:'Tes conversations et tes demandes, au même endroit.',group:'community',icon:'mail',tone:'blue',path:'https://warlike-mail.pages.dev',external:true},
  {id:'pdf',name:'WarLike PDF',subtitle:'DOCUMENTS',description:'Assemble, organise et annote tes documents en local.',group:'tools',icon:'file',tone:'sand',path:'/pdf'},
  {id:'vault',name:'WarLike Crypte',subtitle:'COFFRE PERSONNEL',description:'Tes accès chiffrés avec ta clé personnelle. Version expérimentale.',group:'tools',icon:'lock',tone:'violet',path:'/crypte'},
  {id:'extensions',name:'Extensions',subtitle:'MODULES DU HUB',description:'Huit modules pour tes notes, tes projets, le tempo, les images et les données.',group:'tools',icon:'sliders',tone:'mint',path:'/extensions'},
