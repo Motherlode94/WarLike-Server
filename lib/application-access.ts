@@ -6,7 +6,7 @@ import {assertHubMembership} from './hub-policy.ts';
 import {HttpError} from './security.ts';
 import type {Principal} from './policy.ts';
 
-const publicPages=new Set(['/','/inscription','/signin-with-chatgpt','/signout-with-chatgpt','/callback']);
+const publicPages=new Set(['/','/inscription','/signin-with-chatgpt','/signout-with-chatgpt','/callback','/connect/heart']);
 export function protectedPage(path:string){
  if(publicPages.has(path))return false;
  // Build assets contain no account data. Application routes are private by default.
