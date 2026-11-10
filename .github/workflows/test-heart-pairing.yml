@@ -1,0 +1,23 @@
+name: Test WarLike Heart pairing
+on:
+  pull_request:
+    paths:
+      - 'lib/heart-pairing.ts'
+      - 'app/api/heart/**'
+      - 'app/connect/heart/**'
+      - 'drizzle/0007_heart_pairing.sql'
+      - 'tests/heart-pairing.test.ts'
+      - '.github/workflows/test-heart-pairing.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Test PKCE pairing and migration
+        run: node --experimental-strip-types --test tests/heart-pairing.test.ts
