@@ -13,6 +13,17 @@ export async function guardRequest(request: Request, env: { DB?: D1Database; WAR
   if (url.pathname === '/api/health' && request.method === 'GET') {
     return withRequestIdentity(null, null, () => run(request));
   }
+  // Pairing code redemption is intentionally public to the Heart backend:
+  // a valid one-time PKCE verifier is the credential, never the user's cookie.
+  // The endpoint itself validates and atomically consumes the code.
+  if (url.pathname === '/api/heart/exchange') {
+    if (request.method !== 'POST') throw new HttpError(405,'Méthode non autorisée.');
+    if (!env.DB) throw new HttpError(503,'Base de données indisponible.');
+    if (request.headers.get('content-type')?.split(';')[0].trim().toLowerCase() !== 'application/json') throw new HttpError(415,'JSON requis.');
+    const bytes=await readLimitedBytes(request,2048);
+    await rateLimit(env.DB,request.headers.get('cf-connecting-ip')||'unknown-client','heart-code-exchange',20,900);
+    return withWarLikeAnonymous(()=>run(new Request(request,{body:bytes})));
+  }
   const enabled=env.WARLIKE_AUTH_ENABLED==='true';
   if(enabled&&!env.DB)throw Error('Database unavailable');
   if(enabled&&url.pathname.startsWith('/api/warlike-auth/')){
