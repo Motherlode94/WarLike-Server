@@ -5,6 +5,13 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/deploy-cloudflare-runtime.yml'
+      - 'app/api/heart/**'
+      - 'app/connect/heart/**'
+      - 'lib/heart-pairing.ts'
+      - 'lib/request-guard.ts'
+      - 'lib/application-access.ts'
+      - 'app/connexion/view.tsx'
+      - 'drizzle/0007_heart_pairing.sql'
 permissions:
   contents: read
 jobs:
@@ -28,7 +35,7 @@ jobs:
       - name: Verify deployment credential exists
         run: test -n "$CLOUDFLARE_API_TOKEN" || { echo 'Missing CLOUDFLARE_DEPLOY_TOKEN repository secret'; exit 1; }
       - run: npm run install:ci
-      - run: node --experimental-strip-types --test tests/warlike-auth.test.ts tests/warlike-auth-http.test.ts
+      - run: node --experimental-strip-types --test tests/warlike-auth.test.ts tests/warlike-auth-http.test.ts tests/heart-pairing.test.ts
       - run: node node_modules/vite/bin/vite.js build --config vite.cloudflare.config.ts
       - run: node node_modules/wrangler/bin/wrangler.js deploy --dry-run --config dist/server/wrangler.json
       - name: Deploy private runtime
