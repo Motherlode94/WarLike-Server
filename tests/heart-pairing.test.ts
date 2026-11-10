@@ -21,7 +21,7 @@ test('no pairing for inactive member',async()=>{
  const {db,sql,alice}=mailDatabase();
  try{
   const verifier='z'.repeat(43),code=await createCode(db,alice.id,await sha256(verifier));
-  await db.prepare("INSERT INTO member_controls(member_id,status,updated_at) VALUES(?,'suspended',?)").bind(alice.id,Date.now()).run();
+  await db.prepare("INSERT INTO member_controls(member_id,status,updated_at,updated_by) VALUES(?,'suspended',?,?)").bind(alice.id,Date.now(),alice.id).run();
   assert.equal(await exchangeCode(db,code,verifier),null);
  }finally{sql.close();}
 });
