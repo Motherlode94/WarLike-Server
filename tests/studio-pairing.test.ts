@@ -1,0 +1,33 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {mailDatabase} from './mail-database.ts';
+import {sha256} from '../lib/heart-pairing.ts';
+import {issueStudioCode,redeemStudioCode,studioPrincipal,revokeStudioToken,STUDIO_CODE_TTL} from '../lib/studio-pairing.ts';
+
+test('Studio pairing is one-use and tied to PKCE verifier',async()=>{
+ const {db,sql,alice}=mailDatabase();
+ try{
+  const verifier='v'.repeat(43),challenge=await sha256(verifier),now=Date.now();
+  const code=await issueStudioCode(db,alice.id,challenge,now);
+  assert.equal(await redeemStudioCode(db,code,'x'.repeat(43),now+1),null);
+  const issued=await redeemStudioCode(db,code,verifier,now+2);
+  assert.ok(issued?.token);
+  assert.equal(await redeemStudioCode(db,code,verifier,now+3),null);
+  assert.equal((await studioPrincipal(db,issued.token,now+4))?.id,alice.id);
+  await revokeStudioToken(db,issued.token,now+5);
+  assert.equal(await studioPrincipal(db,issued.token,now+6),null);
+  const late=await issueStudioCode(db,alice.id,challenge,now);
+  assert.equal(await redeemStudioCode(db,late,verifier,now+STUDIO_CODE_TTL+1),null);
+ }finally{sql.close();}
+});
+test('Studio session denies suspended or expired members',async()=>{
+ const {db,sql,alice}=mailDatabase();
+ try{
+  const verifier='z'.repeat(43),code=await issueStudioCode(db,alice.id,await sha256(verifier));
+  const session=await redeemStudioCode(db,code,verifier);
+  assert.ok(session?.token);
+  await db.prepare("INSERT INTO member_controls(member_id,status,updated_at,updated_by) VALUES(?,'suspended',?,?)").bind(alice.id,Date.now(),alice.id).run();
+  assert.equal(await studioPrincipal(db,session.token),null);
+  assert.equal(await studioPrincipal(db,session.token,session.expiresAt+1),null);
+ }finally{sql.close();}
+});

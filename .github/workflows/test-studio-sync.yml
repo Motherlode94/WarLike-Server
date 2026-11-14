@@ -1,0 +1,42 @@
+name: WarLike Studio API tests
+on:
+  pull_request:
+    paths:
+      - 'app/api/studio/**'
+      - 'lib/request-guard.ts'
+      - 'drizzle/0008_studio_projects.sql'
+      - 'tests/studio-projects.test.ts'
+      - 'tests/studio-pairing.test.ts'
+      - 'lib/studio-pairing.ts'
+      - 'drizzle/0009_studio_pairing.sql'
+      - '.github/workflows/test-studio-sync.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app/api/studio/**'
+      - 'lib/request-guard.ts'
+      - 'drizzle/0008_studio_projects.sql'
+      - 'tests/studio-projects.test.ts'
+      - '.github/workflows/test-studio-sync.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Validate real D1 migrations and Studio project ownership
+        run: node --experimental-strip-types --test tests/studio-projects.test.ts tests/studio-pairing.test.ts
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa
+        with:
+          version: '11.25.0'
+          run_install: false
+      - name: Install server dependencies
+        run: npm run install:ci
+      - name: Build Cloudflare runtime
+        run: node node_modules/vite/bin/vite.js build --config vite.cloudflare.config.ts
+      - name: Verify deployable Worker bundle without deployment
+        run: node node_modules/wrangler/bin/wrangler.js deploy --dry-run --config dist/server/wrangler.json
