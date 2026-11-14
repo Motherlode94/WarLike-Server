@@ -6,6 +6,9 @@ on:
       - 'lib/request-guard.ts'
       - 'drizzle/0008_studio_projects.sql'
       - 'tests/studio-projects.test.ts'
+      - 'tests/studio-pairing.test.ts'
+      - 'lib/studio-pairing.ts'
+      - 'drizzle/0009_studio_pairing.sql'
       - '.github/workflows/test-studio-sync.yml'
   push:
     branches: [main]
@@ -26,7 +29,7 @@ jobs:
         with:
           node-version: '24'
       - name: Validate real D1 migrations and Studio project ownership
-        run: node --experimental-strip-types --test tests/studio-projects.test.ts
+        run: node --experimental-strip-types --test tests/studio-projects.test.ts tests/studio-pairing.test.ts
       - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa
         with:
           version: '11.25.0'
