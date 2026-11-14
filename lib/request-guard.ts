@@ -42,12 +42,12 @@ export async function guardRequest(request: Request, env: { DB?: D1Database; WAR
         if(api)throw new HttpError(403,'Modifie tes identifiants temporaires avant de continuer.');
         return new Response(null,{status:303,headers:{Location:'/mot-de-passe','Cache-Control':'no-store'}});
       }
-      if(!['GET','HEAD','POST'].includes(request.method))throw new HttpError(405,'Méthode non autorisée.');
-      if(request.method==='POST'&&(request.headers.get('origin')!==url.origin||request.headers.get('sec-fetch-site')==='cross-site'))throw new HttpError(403,'Origine refusée.');
-      if(request.method==='POST'){
+      if(!['GET','HEAD','POST'].includes(request.method)&&!(url.pathname.startsWith('/api/studio/projects/')&&['PUT','DELETE'].includes(request.method)))throw new HttpError(405,'Méthode non autorisée.');
+      if(['POST','PUT','DELETE'].includes(request.method)&&(request.headers.get('origin')!==url.origin||request.headers.get('sec-fetch-site')==='cross-site'))throw new HttpError(403,'Origine refusée.');
+      if(['POST','PUT','DELETE'].includes(request.method)){
         const multipart=url.pathname==='/api/community'&&request.headers.get('content-type')?.startsWith('multipart/form-data;');
         if(!multipart&&request.headers.get('content-type')?.split(';')[0].trim().toLowerCase()!=='application/json')throw new HttpError(415,'JSON requis.');
-        const limit=url.pathname==='/api/vault'?1500000:multipart?13*1024*1024:['/api/admin','/api/hub'].includes(url.pathname)?8192:40000;
+        const limit=url.pathname.startsWith('/api/studio/projects')?900000:url.pathname==='/api/vault'?1500000:multipart?13*1024*1024:['/api/admin','/api/hub'].includes(url.pathname)?8192:40000;
         const bytes=await readLimitedBytes(request,limit);
         request=new Request(request,{body:bytes});
       }
