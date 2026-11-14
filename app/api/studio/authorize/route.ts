@@ -12,7 +12,7 @@ export async function POST(request:Request){
   if(!validChallenge(body.challenge)||!validStudioState(body.state))return Response.json({error:'Demande invalide'},{status:400});
   const user=await identity();if(!user)return Response.json({error:'Connexion requise'},{status:401});
   const db=database();if(await mustChange(db,user.id))return Response.json({error:'Mot de passe temporaire à remplacer'},{status:403});
-  const code=await issueStudioCode(db,user.id,body.challenge);
-  return Response.json({redirect:STUDIO_ORIGIN+'/#warlike_studio_pair='+encodeURIComponent(code)+'&state='+encodeURIComponent(body.state)},{headers:{'Cache-Control':'no-store'}});
+  const code=await issueStudioCode(db,user.id,body.challenge!);
+  return Response.json({redirect:STUDIO_ORIGIN+'/#warlike_studio_pair='+encodeURIComponent(code)+'&state='+encodeURIComponent(body.state!)},{headers:{'Cache-Control':'no-store'}});
  }catch{return Response.json({error:'Association indisponible'},{status:503});}
 }
