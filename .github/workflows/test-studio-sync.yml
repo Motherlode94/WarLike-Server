@@ -27,3 +27,13 @@ jobs:
           node-version: '24'
       - name: Validate real D1 migrations and Studio project ownership
         run: node --experimental-strip-types --test tests/studio-projects.test.ts
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa
+        with:
+          version: '11.25.0'
+          run_install: false
+      - name: Install server dependencies
+        run: npm run install:ci
+      - name: Build Cloudflare runtime
+        run: node node_modules/vite/bin/vite.js build --config vite.cloudflare.config.ts
+      - name: Verify deployable Worker bundle without deployment
+        run: node node_modules/wrangler/bin/wrangler.js deploy --dry-run --config dist/server/wrangler.json
