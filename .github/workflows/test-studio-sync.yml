@@ -1,0 +1,29 @@
+name: WarLike Studio API tests
+on:
+  pull_request:
+    paths:
+      - 'app/api/studio/**'
+      - 'lib/request-guard.ts'
+      - 'drizzle/0008_studio_projects.sql'
+      - 'tests/studio-projects.test.ts'
+      - '.github/workflows/test-studio-sync.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app/api/studio/**'
+      - 'lib/request-guard.ts'
+      - 'drizzle/0008_studio_projects.sql'
+      - 'tests/studio-projects.test.ts'
+      - '.github/workflows/test-studio-sync.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Validate real D1 migrations and Studio project ownership
+        run: node --experimental-strip-types --test tests/studio-projects.test.ts
