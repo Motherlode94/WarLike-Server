@@ -5,6 +5,7 @@ import { consumeNonce, rateLimit } from './security-store.ts';
 import { HttpError, readLimitedBytes } from './security.ts';
 import {authHttp,tokenFrom} from './warlike-auth-http.ts';
 import {session,mustChange} from './warlike-auth.ts';
+import {studioPrincipal, revokeStudioToken} from './studio-pairing.ts';
 const ORIGIN = 'https://warlike-server.vikktor7.chatgpt.site';
 
 export async function guardRequest(request: Request, env: { DB?: D1Database; WARLIKE_BRIDGE_KEY?: string; WARLIKE_OWNER_EMAIL?: string; WARLIKE_AUTH_ENABLED?: string; WARLIKE_BOOTSTRAP_SECRET?: string }, run: (request: Request) => Response | Promise<Response>, development=false): Promise<Response> {
@@ -23,6 +24,31 @@ export async function guardRequest(request: Request, env: { DB?: D1Database; WAR
     const bytes=await readLimitedBytes(request,2048);
     await rateLimit(env.DB,request.headers.get('cf-connecting-ip')||'unknown-client','heart-code-exchange',20,900);
     return withWarLikeAnonymous(()=>run(new Request(request,{body:bytes})));
+  }
+  // Studio pairing code exchange: one-use PKCE credential, not a browser identity header.
+  if(url.pathname==='/api/studio/exchange'){
+    if(request.method!=='POST'||!env.DB)throw new HttpError(503,'Échange Studio indisponible.');
+    if(request.headers.get('content-type')?.split(';')[0].trim().toLowerCase()!=='application/json')throw new HttpError(415,'JSON requis.');
+    const bytes=await readLimitedBytes(request,2048);
+    await rateLimit(env.DB,request.headers.get('cf-connecting-ip')||'unknown-client','studio-code-exchange',20,900);
+    return withWarLikeAnonymous(()=>run(new Request(request,{body:bytes})));
+  }
+  // Private Studio API accepts only opaque revocable bearer credentials for its proxy.
+  if(url.pathname.startsWith('/api/studio/')&&url.pathname!=='/api/studio/authorize'){
+    const bearer=request.headers.get('authorization')?.match(/^Bearer ([A-Za-z0-9_-]{43})$/)?.[1];
+    if(bearer){
+      if(!env.DB)throw new HttpError(503,'Base de données indisponible.');
+      const principal=await studioPrincipal(env.DB,bearer);
+      if(!principal)throw new HttpError(401,'Session Studio invalide.');
+      if(!['GET','HEAD','POST','PUT','DELETE'].includes(request.method))throw new HttpError(405,'Méthode non autorisée.');
+      if(['POST','PUT','DELETE'].includes(request.method)){
+        if(request.headers.get('content-type')?.split(';')[0].trim().toLowerCase()!=='application/json' && !request.headers.get('content-type')?.startsWith('multipart/form-data;'))throw new HttpError(415,'Format requis.');
+        const bytes=await readLimitedBytes(request,request.headers.get('content-type')?.startsWith('multipart/form-data;')?13*1024*1024:900000);
+        request=new Request(request,{body:bytes});
+      }
+      await rateLimit(env.DB,principal.id,'studio:'+request.method+':'+url.pathname,60);
+      return withWarLikeIdentity(principal,()=>run(request));
+    }
   }
   const enabled=env.WARLIKE_AUTH_ENABLED==='true';
   if(enabled&&!env.DB)throw Error('Database unavailable');
