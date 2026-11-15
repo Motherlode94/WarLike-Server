@@ -1,3 +1,4 @@
+import {publicHealthStatus} from '@/lib/health-public';
 import {env} from 'cloudflare:workers';
 export const dynamic='force-dynamic';
 export async function GET(){
@@ -16,5 +17,5 @@ export async function GET(){
     }catch{databaseReady=false;schemaReady=false}
   }
   const ready=Object.values(bindings).every(Boolean)&&databaseReady&&schemaReady;
-  return Response.json({service:'warlike-server',ready,databaseReady,schemaReady,bindings,authentication:env.WARLIKE_AUTH_ENABLED==='true'?'WarLike password':'external identity',mailTransport:'internal-only'},{status:ready?200:503,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
+  return Response.json(publicHealthStatus(ready),{status:ready?200:503,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
 }
