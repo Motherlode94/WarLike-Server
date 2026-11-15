@@ -1,0 +1,28 @@
+/* WarLike Foundation 1.1 — canonical source: WarLike-Hub/design-system/.
+   Vendored locally: no CDN, account, project or runtime dependency. */
+:root{
+  --wl-forest:#37463D;--wl-slate:#5B696B;--wl-graphite:#535953;
+  --wl-ivory:#F8FBF1;--wl-sage:#C5C5A9;
+  --wl-bg:#17211B;--wl-surface:#233027;--wl-surface-alt:#37463D;
+  --wl-text:#F8FBF1;--wl-text-muted:#D4DCCA;--wl-border:#596A5C;
+  --wl-primary:#C5C5A9;--wl-primary-text:#17211B;--wl-focus:#C5C5A9;
+  --wl-secondary:#5B696B;--wl-secondary-text:#FFFFFF;
+  --wl-accent:#C5C5A9;--wl-accent-text:#17211B;
+  --wl-radius-sm:7px;--wl-radius-md:14px;--wl-radius-lg:20px;
+  --wl-shadow:0 12px 30px #00000040;color-scheme:dark;
+}
+:root[data-warlike-mode="light"],:root[data-warlike-theme="light"],:root:has(body.light){
+  --wl-bg:#F8FBF1;--wl-surface:#FFFFFF;--wl-surface-alt:#EEF1E6;
+  --wl-text:#37463D;--wl-text-muted:#535953;--wl-border:#B0B7A8;
+  --wl-primary:#37463D;--wl-primary-text:#F8FBF1;--wl-focus:#5B696B;
+  --wl-accent:#37463D;--wl-accent-text:#F8FBF1;
+  --wl-shadow:0 12px 30px #37463D1A;color-scheme:light;
+}
+html[data-warlike-app],html[data-warlike-app] body{background:var(--wl-bg);color:var(--wl-text)}
+html[data-warlike-app] :focus-visible{outline:2px solid var(--wl-focus);outline-offset:3px}
+html[data-warlike-app] :is(input[type=checkbox],input[type=radio],input[type=range]){accent-color:var(--wl-accent)}
+html[data-warlike-app] ::selection{background:var(--wl-primary);color:var(--wl-primary-text)}
+.wl-app{background:var(--wl-bg);color:var(--wl-text)}
+.wl-card{background:var(--wl-surface);color:var(--wl-text);border:1px solid var(--wl-border);border-radius:var(--wl-radius-md)}
+.wl-button-primary{background:var(--wl-primary);color:var(--wl-primary-text);border:1px solid var(--wl-primary);border-radius:var(--wl-radius-sm)}
+.wl-input{background:var(--wl-surface);color:var(--wl-text);border:1px solid var(--wl-border);border-radius:var(--wl-radius-sm)}

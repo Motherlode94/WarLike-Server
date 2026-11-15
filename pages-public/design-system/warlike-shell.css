@@ -1,0 +1,15 @@
+/* WarLike shell adapter — presentation only; retain app layout and semantic states. */
+html[data-warlike-app="warlike-server"],html[data-warlike-app="warlike-server"] body.light{--bg:var(--wl-bg);--panel:var(--wl-surface);--panel2:var(--wl-surface-alt);--surface:var(--wl-surface);--soft:var(--wl-surface-alt);--side:var(--wl-bg);--line:var(--wl-border);--text:var(--wl-text);--white:var(--wl-text);--muted:var(--wl-text-muted);--accent:var(--wl-accent);--green:var(--wl-accent);--primary:var(--wl-primary);--teal:var(--wl-accent);}
+html[data-warlike-app="warlike-server"] :is(.content header,.panel,.card,.settings-card){background:var(--wl-surface);border-color:var(--wl-border);color:var(--wl-text)}
+html[data-warlike-app="warlike-server"] :is(.hero,.welcome){background:linear-gradient(115deg,var(--wl-surface-alt),var(--wl-surface));border-color:var(--wl-border);color:var(--wl-text)}
+html[data-warlike-app="warlike-server"] :is(.brand small,.brand-sub,.muted,.hint,.tag,.pill,.kicker,.side-title){color:var(--wl-text-muted)}
+html[data-warlike-app="warlike-server"] :is(.eyebrow,.brand em,.brand b,.brand strong span,.logo span){color:var(--wl-accent)}
+html[data-warlike-app="warlike-server"] :is(.primary,.btn.primary,.button:not(.secondary),.cta,.read,.new-room,.export-btn,.compose-launch,.hub-primary){background:var(--wl-primary);border-color:var(--wl-primary);color:var(--wl-primary-text);border-radius:var(--wl-radius-sm)}
+html[data-warlike-app="warlike-server"] :is(.primary,.btn.primary,.cta,.read,.export-btn,.compose-launch):hover:not(:disabled){background:var(--wl-surface-alt);color:var(--wl-text);border-color:var(--wl-focus)}
+html[data-warlike-app="warlike-server"] :is(.btn:not(.primary),.secondary,.button.secondary,.ghost,.outline,.import-button,.header-actions button){background:var(--wl-surface-alt);border-color:var(--wl-border);color:var(--wl-text)}
+html[data-warlike-app="warlike-server"] :is(input:not([type=color]):not([type=range]):not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea){background:var(--wl-bg);border-color:var(--wl-border);color:var(--wl-text)}
+html[data-warlike-app="warlike-server"] :is(input,textarea)::placeholder{color:var(--wl-text-muted);opacity:1}
+html[data-warlike-app="warlike-server"] :is(nav button,nav a,.nav button,.filters button,.filter,.tab):is(.active,[aria-current=page],[aria-current=true],[aria-pressed=true]){background:var(--wl-surface-alt);border-color:var(--wl-focus);color:var(--wl-text)}
+html[data-warlike-app="warlike-server"] :is(.mark,.brand-mark,.logo:not(a),.brand .mark){background:var(--wl-forest);border-color:var(--wl-sage);color:var(--wl-ivory)}
+html[data-warlike-app="warlike-server"] aside{background:#17211B;color:#D4DCCA}
+.hub-shell,.hub-auth-shell{--h-bg:#17211B;--h-panel:#233027;--h-line:#596A5C;--h-ink:#F8FBF1;--h-muted:#D4DCCA;--h-accent:#C5C5A9}
