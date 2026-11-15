@@ -17,3 +17,5 @@ html[data-warlike-app="warlike-server"] :is(nav button,nav a,.nav button,.filter
 html[data-warlike-app="warlike-server"] :is(.mark,.brand-mark,.logo:not(a),.brand .mark){background:var(--wl-forest);border-color:var(--wl-sage);color:var(--wl-ivory)}
 html[data-warlike-app="warlike-server"] aside{background:#17211B;color:#D4DCCA}
 html[data-warlike-app="warlike-server"] :is(.hub-shell,.hub-auth-shell){--h-bg:#17211B;--h-panel:#233027;--h-line:#596A5C;--h-ink:#F8FBF1;--h-muted:#D4DCCA;--h-accent:#C5C5A9}
+
+html[data-warlike-app="warlike-server"] aside{--wl-accent:#C5C5A9;--wl-primary:#C5C5A9;--wl-primary-text:#17211B;--wl-text:#F8FBF1;--wl-text-muted:#D4DCCA;--wl-surface:#233027;--wl-surface-alt:#37463D;--wl-border:#596A5C}
