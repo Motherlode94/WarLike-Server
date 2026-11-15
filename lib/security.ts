@@ -48,6 +48,7 @@ export function errorResponse(error: unknown) {
 export function secureResponse(response: Response, request: Request, development = false) {
   const headers = new Headers(response.headers);
   headers.set('X-Content-Type-Options', 'nosniff');
+  headers.set('X-Permitted-Cross-Domain-Policies','none');
   headers.set('Referrer-Policy', 'no-referrer');
   headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=()');
   headers.set('Cross-Origin-Resource-Policy', 'same-origin');
@@ -55,6 +56,8 @@ export function secureResponse(response: Response, request: Request, development
   if (!development && new URL(request.url).protocol === 'https:') headers.set('Strict-Transport-Security', 'max-age=31536000');
   if ((response.status>=300&&response.status<400) || new URL(request.url).pathname.startsWith('/api/') || headers.get('content-type')?.includes('text/html')) {
     headers.set('Cache-Control', 'private, no-store'); headers.set('Pragma', 'no-cache'); headers.delete('ETag');
+    headers.set('X-Robots-Tag','noindex, nofollow, noarchive');
+    const vary=new Set((headers.get('Vary')||'').split(',').map(x=>x.trim()).filter(Boolean));vary.add('Cookie');vary.add('Authorization');headers.set('Vary',[...vary].join(', '));
   }
   if (!headers.has('Content-Security-Policy')) headers.set('Content-Security-Policy', [
     "default-src 'self'", "base-uri 'self'", "object-src 'none'",

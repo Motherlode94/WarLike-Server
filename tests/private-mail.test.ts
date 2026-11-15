@@ -49,14 +49,14 @@ test('gateway blocks anonymous, pending, declined and suspended visitors on dire
  const f=mailDatabase();try{
   const env={DB:f.db,WARLIKE_OWNER_EMAIL:f.owner.email};let dispatched=0;const run=async()=>{dispatched++;return new Response('private')};
   const headers=(u:typeof f.owner)=>({'oai-authenticated-user-id':'auth-'+u.id,'oai-authenticated-user-email':u.email});
-  assert.equal((await guardRequest(new Request('https://example.test/pdf'),env,run)).status,303);
-  for(const status of ['new','pending','declined']){f.sql.prepare('UPDATE hub_memberships SET status=? WHERE member_id=?').run(status,f.eve.id);await assert.rejects(()=>guardRequest(new Request('https://example.test/api/vault',{headers:headers(f.eve)}),env,run),denied);assert.equal((await guardRequest(new Request('https://example.test/extensions',{headers:headers(f.eve)}),env,run)).status,303);}
+  assert.equal((await guardRequest(new Request('https://warlike-server.vikktor7.chatgpt.site/pdf'),env,run)).status,303);
+  for(const status of ['new','pending','declined']){f.sql.prepare('UPDATE hub_memberships SET status=? WHERE member_id=?').run(status,f.eve.id);await assert.rejects(()=>guardRequest(new Request('https://warlike-server.vikktor7.chatgpt.site/api/vault',{headers:headers(f.eve)}),env,run),denied);assert.equal((await guardRequest(new Request('https://warlike-server.vikktor7.chatgpt.site/extensions',{headers:headers(f.eve)}),env,run)).status,303);}
   assert.equal(dispatched,0);
-  await guardRequest(new Request('https://example.test/pdf',{headers:headers(f.alice)}),env,run);assert.equal(dispatched,1);
-  await assert.rejects(()=>guardRequest(new Request('https://example.test/api/admin',{headers:headers(f.alice)}),env,run),denied);
+  await guardRequest(new Request('https://warlike-server.vikktor7.chatgpt.site/pdf',{headers:headers(f.alice)}),env,run);assert.equal(dispatched,1);
+  await assert.rejects(()=>guardRequest(new Request('https://warlike-server.vikktor7.chatgpt.site/api/admin',{headers:headers(f.alice)}),env,run),denied);
   f.sql.prepare('INSERT INTO member_controls(member_id,status,updated_at,updated_by) VALUES(?,?,?,?)').run(f.alice.id,'suspended',Date.now(),f.owner.id);
-  await assert.rejects(()=>guardRequest(new Request('https://example.test/api/mail',{headers:headers(f.alice)}),env,run),denied);
-  assert.equal((await guardRequest(new Request('https://example.test/serveur',{headers:headers(f.owner)}),env,run)).status,200);
+  await assert.rejects(()=>guardRequest(new Request('https://warlike-server.vikktor7.chatgpt.site/api/mail',{headers:headers(f.alice)}),env,run),denied);
+  assert.equal((await guardRequest(new Request('https://warlike-server.vikktor7.chatgpt.site/serveur',{headers:headers(f.owner)}),env,run)).status,200);
  }finally{f.sql.close()}
 });
 

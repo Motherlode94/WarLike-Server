@@ -35,11 +35,14 @@ jobs:
       - name: Verify deployment credential exists
         run: test -n "$CLOUDFLARE_API_TOKEN" || { echo 'Missing CLOUDFLARE_DEPLOY_TOKEN repository secret'; exit 1; }
       - run: npm run install:ci
-      - run: node --experimental-strip-types --test tests/warlike-auth.test.ts tests/warlike-auth-http.test.ts tests/heart-pairing.test.ts
+      - run: node --experimental-strip-types --test tests/*.test.ts
       - run: node node_modules/vite/bin/vite.js build --config vite.cloudflare.config.ts
       - run: node node_modules/wrangler/bin/wrangler.js deploy --dry-run --config dist/server/wrangler.json
+      - run: node --test tests/worker-observability.test.mjs
       - name: Deploy private runtime
         run: node node_modules/wrangler/bin/wrangler.js deploy --config dist/server/wrangler.json
+      - name: Protect request query parameters in logs
+        run: node scripts/secure-worker-observability.mjs
 
 # The production runtime reports its configured authentication mode.
 

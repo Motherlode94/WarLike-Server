@@ -16,5 +16,6 @@ export async function rateLimit(db: D1Database, identity: string, scope: string,
   const period = seconds * 1000, window = Math.floor(now / period), expires = (window + 1) * period;
   const bucket = await digest(identity + '\n' + scope + '\n' + window);
   const row = await db.prepare('INSERT INTO security_windows(bucket,count,expires_at) VALUES(?,1,?) ON CONFLICT(bucket) DO UPDATE SET count=security_windows.count+1 RETURNING count').bind(bucket, expires).first<{ count: number }>();
+  if(Math.random()<0.02)await db.prepare('DELETE FROM security_windows WHERE bucket IN (SELECT bucket FROM security_windows WHERE expires_at<? LIMIT 500)').bind(now).run();
   if (!row || row.count > limit) throw new HttpError(429, 'Trop de demandes. Réessaie un peu plus tard.', Math.max(1, Math.ceil((expires - now) / 1000)));
 }

@@ -1,3 +1,4 @@
+import {assertUnambiguousPath,limitApiRequest,requestRateScope} from './request-security.ts';
 import {authorizeApplication,authorizePrincipal,protectedPage} from './application-access.ts';
 import { verifyClaim } from './bridge.ts';
 import { withRequestIdentity,withWarLikeIdentity,withWarLikeAnonymous } from './identity-context.ts';
@@ -10,6 +11,7 @@ const ORIGIN = 'https://warlike-server.vikktor7.chatgpt.site';
 
 export async function guardRequest(request: Request, env: { DB?: D1Database; WARLIKE_BRIDGE_KEY?: string; WARLIKE_OWNER_EMAIL?: string; WARLIKE_AUTH_ENABLED?: string; WARLIKE_BOOTSTRAP_SECRET?: string }, run: (request: Request) => Response | Promise<Response>, development=false): Promise<Response> {
   const url = new URL(request.url), api = url.pathname.startsWith('/api/');
+  assertUnambiguousPath(url);
   // Only the operational health endpoint is public. Never expose private mailbox data here.
   if (url.pathname === '/api/health' && request.method === 'GET') {
     return withRequestIdentity(null, null, () => run(request));
@@ -40,13 +42,15 @@ export async function guardRequest(request: Request, env: { DB?: D1Database; WAR
       if(!env.DB)throw new HttpError(503,'Base de données indisponible.');
       const principal=await studioPrincipal(env.DB,bearer);
       if(!principal)throw new HttpError(401,'Session Studio invalide.');
+      await authorizePrincipal(env.DB,principal,url);
+      await limitApiRequest(env.DB,principal.id,request);
       if(!['GET','HEAD','POST','PUT','DELETE'].includes(request.method))throw new HttpError(405,'Méthode non autorisée.');
       if(['POST','PUT','DELETE'].includes(request.method)){
         if(request.headers.get('content-type')?.split(';')[0].trim().toLowerCase()!=='application/json' && !request.headers.get('content-type')?.startsWith('multipart/form-data;'))throw new HttpError(415,'Format requis.');
         const bytes=await readLimitedBytes(request,request.headers.get('content-type')?.startsWith('multipart/form-data;')?13*1024*1024:900000);
         request=new Request(request,{body:bytes});
       }
-      await rateLimit(env.DB,principal.id,'studio:'+request.method+':'+url.pathname,60);
+      await rateLimit(env.DB,principal.id,'studio:'+requestRateScope(request.method,url.pathname),60);
       return withWarLikeIdentity(principal,()=>run(request));
     }
   }
@@ -64,12 +68,14 @@ export async function guardRequest(request: Request, env: { DB?: D1Database; WAR
   if(enabled&&!signed&&env.DB){
     const principal=await session(env.DB,tokenFrom(request));
     if(principal){
+      if(api||page)await authorizePrincipal(env.DB,principal,url);
       if((api||page||url.pathname==='/')&&await mustChange(env.DB,principal.id)&&!['/mot-de-passe','/deconnexion'].includes(url.pathname)){
         if(api)throw new HttpError(403,'Modifie tes identifiants temporaires avant de continuer.');
         return new Response(null,{status:303,headers:{Location:'/mot-de-passe','Cache-Control':'no-store'}});
       }
       if(!['GET','HEAD','POST'].includes(request.method)&&!(url.pathname.startsWith('/api/studio/projects/')&&['PUT','DELETE'].includes(request.method)))throw new HttpError(405,'Méthode non autorisée.');
       if(['POST','PUT','DELETE'].includes(request.method)&&(request.headers.get('origin')!==url.origin||request.headers.get('sec-fetch-site')==='cross-site'))throw new HttpError(403,'Origine refusée.');
+      if(api)await limitApiRequest(env.DB,principal.id,request);
       if(['POST','PUT','DELETE'].includes(request.method)){
         const multipart=(url.pathname==='/api/community'||/^\/api\/studio\/projects\/[0-9a-f-]{36}\/assets$/.test(url.pathname))&&request.headers.get('content-type')?.startsWith('multipart/form-data;');
         if(!multipart&&request.headers.get('content-type')?.split(';')[0].trim().toLowerCase()!=='application/json')throw new HttpError(415,'JSON requis.');
@@ -77,17 +83,16 @@ export async function guardRequest(request: Request, env: { DB?: D1Database; WAR
         const bytes=await readLimitedBytes(request,limit);
         request=new Request(request,{body:bytes});
       }
-      if(api||page)await authorizePrincipal(env.DB,principal,url);
-      await rateLimit(env.DB,principal.id,request.method+':'+url.pathname,request.method==='POST'?30:120);
+      await rateLimit(env.DB,principal.id,requestRateScope(request.method,url.pathname),request.method==='POST'?30:120);
       return withWarLikeIdentity(principal,()=>run(request));
     }
     if(api)throw new HttpError(401,'Connexion WarLike requise.');
     if(page)return new Response(null,{status:303,headers:{Location:'/connexion'}});
     return withWarLikeAnonymous(()=>run(request));
   }
-  // Cloudflare Pages hosts are public: user identity headers there are client-controlled.
-  // Only a verified HMAC bridge may authenticate a request on that host.
-  if (!development && url.hostname.endsWith('.pages.dev') && !signed && (api || page)) throw new HttpError(401, 'Accès privé requis : utilise WarLike Server avec une identité authentifiée.');
+  // Provider identity headers are trusted only behind the canonical Sites gateway.
+  // Workers, Pages and lookalike hosts must use WarLike sessions or the signed Mail bridge.
+  if (!development && url.origin !== ORIGIN && !signed && (api || page)) throw new HttpError(401, 'Accès privé requis : utilise WarLike Server avec une identité authentifiée.');
   if (!api&&!page) return withRequestIdentity(null, null, () => run(request));
   if (!['GET', 'HEAD', 'POST'].includes(request.method)) throw new HttpError(405, 'Méthode non autorisée.');
   if (request.method === 'POST') {
@@ -116,7 +121,7 @@ export async function guardRequest(request: Request, env: { DB?: D1Database; WAR
   if(!env.WARLIKE_OWNER_EMAIL)throw Error('Owner configuration unavailable');
   try{await authorizeApplication(env.DB,auth,env.WARLIKE_OWNER_EMAIL,!!claim,url)}catch(error){if(page&&error instanceof HttpError&&error.status===403)return new Response(null,{status:303,headers:{Location:'/inscription'}});throw error;}
   const subject = (claim?.user.email || request.headers.get('oai-authenticated-user-email') || '').trim().toLowerCase();
-  await rateLimit(env.DB, subject, request.method + ':' + url.pathname, request.method === 'POST' ? url.pathname==='/api/mail'?90:30 : 120);
-  if (request.method === 'POST' && request.headers.get('content-type')?.startsWith('multipart/')) await rateLimit(env.DB, subject, 'media-upload', 20, 3600);
+  await limitApiRequest(env.DB,subject,request);
+  await rateLimit(env.DB, subject, requestRateScope(request.method,url.pathname), request.method === 'POST' ? url.pathname==='/api/mail'?90:30 : 120);
   return withRequestIdentity(claim?.user || null, token, () => run(request));
 }

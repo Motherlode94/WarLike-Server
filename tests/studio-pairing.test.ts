@@ -31,3 +31,23 @@ test('Studio session denies suspended or expired members',async()=>{
   assert.equal(await studioPrincipal(db,session.token,session.expiresAt+1),null);
  }finally{sql.close();}
 });
+
+test('resetting a password revokes Studio access and unused pairing codes',async()=>{
+ const {setCredential}=await import('../lib/warlike-auth.ts');
+ const {db,sql,owner,alice}=mailDatabase();try{
+  await setCredential(db,owner,alice.id,'alice','ancien-mot-de-passe-valide');
+  const verifier='v'.repeat(43),challenge=await sha256(verifier);
+  const first=await issueStudioCode(db,alice.id,challenge),issued=await redeemStudioCode(db,first,verifier);assert.ok(issued);
+  const pending=await issueStudioCode(db,alice.id,challenge);
+  await setCredential(db,owner,alice.id,'alice','nouveau-mot-de-passe-valide');
+  assert.equal(await studioPrincipal(db,issued.token),null);assert.equal(await redeemStudioCode(db,pending,verifier),null);
+ }finally{sql.close();}
+});
+test('Studio bearer access cannot bypass service maintenance',async()=>{
+ const {guardRequest}=await import('../lib/request-guard.ts');
+ const {db,sql,owner,alice}=mailDatabase();try{
+  const verifier='v'.repeat(43),code=await issueStudioCode(db,alice.id,await sha256(verifier)),issued=await redeemStudioCode(db,code,verifier);assert.ok(issued);
+  sql.prepare("INSERT INTO service_settings(key,value,updated_at,updated_by) VALUES('maintenance',?,?,?)").run(JSON.stringify({enabled:true,message:'Maintenance'}),Date.now(),owner.id);
+  await assert.rejects(guardRequest(new Request('https://server.test/api/studio/projects',{headers:{authorization:'Bearer '+issued.token}}),{DB:db},()=>{throw Error('dispatched')}),{status:503});
+ }finally{sql.close();}
+});

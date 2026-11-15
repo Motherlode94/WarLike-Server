@@ -22,7 +22,7 @@ function ensureOrigin(request:Request) {
 export async function authHttp(request:Request,db:D1Database,clientId:string,setup?:{secret?:string;ownerEmail?:string}):Promise<Response> {
  try {
   const path=new URL(request.url).pathname;
-  if(path==='/api/warlike-auth/session'&&request.method==='GET'){const user=await session(db,tokenFrom(request));return response({user,mustChange:user?await mustChange(db,user.id):false});}
+  if(path==='/api/warlike-auth/session'&&request.method==='GET'){await rateLimit(db,clientId,'auth-session-read',120);const user=await session(db,tokenFrom(request));return response({user,mustChange:user?await mustChange(db,user.id):false});}
   if(request.method!=='POST')throw new HttpError(405,'Méthode non autorisée.');
   ensureOrigin(request);
   if(path==='/api/warlike-auth/logout'){
@@ -48,6 +48,7 @@ export async function authHttp(request:Request,db:D1Database,clientId:string,set
   if(path==='/api/warlike-auth/credentials'){
    const actor=await session(db,tokenFrom(request));
    if(!actor||actor.role!=='owner'||await mustChange(db,actor.id))throw new HttpError(403,'Espace réservé au propriétaire.');
+   await rateLimit(db,actor.id,'auth-account-management',10,900);
    const data=await readJsonObject(request,2048);
    if(typeof data.memberId!=='string'||data.memberId.length>100)throw new HttpError(400,'Membre invalide.');
    await setCredential(db,actor,data.memberId,data.login,data.password);
@@ -56,6 +57,7 @@ export async function authHttp(request:Request,db:D1Database,clientId:string,set
   if(path==='/api/warlike-auth/member'){
    const actor=await session(db,tokenFrom(request));
    if(!actor||actor.role!=='owner'||await mustChange(db,actor.id))throw new HttpError(403,'Espace réservé au propriétaire.');
+   await rateLimit(db,actor.id,'auth-account-management',10,900);
    const data=await readJsonObject(request,2048);
    return response(await createMember(db,actor,data.login,data.password,data.displayName),201);
   }

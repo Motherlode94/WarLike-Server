@@ -1,3 +1,4 @@
+import {memberSessionRevocations,ownerSessionRevocations} from '@/lib/session-security';
 import {HttpError,readJsonObject,errorResponse} from '@/lib/security';
 import {database,identity,HOSTED_ORIGIN} from '@/lib/mail';
 import {assertOrigin,roleChange,targets,text,email,newMemberId,type Principal} from '@/lib/policy';
@@ -25,10 +26,12 @@ export async function POST(request:Request){
    assertServiceControl(user);if(typeof data.enabled!=='boolean')return result({error:'État de maintenance invalide.'},400);const message=typeof data.message==='string'?data.message.trim().slice(0,240):'';statements.push(db.prepare("INSERT INTO service_settings(key,value,updated_at,updated_by) VALUES('maintenance',?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at,updated_by=excluded.updated_by").bind(JSON.stringify({enabled:data.enabled,message}),now,user.id));detail=data.enabled?'Maintenance activée'+(message?' · '+message:''):'Service réouvert';
   }else{
    targetId=text(data.memberId,100,'Identifiant');const target=await db.prepare('SELECT id,email,name,role FROM members WHERE id=?').bind(targetId).first<Principal>();if(!target)return result({error:'Membre introuvable.'},404);assertAccountControl(user,target);
-   if(data.action==='status'){
-    if(!['active','suspended'].includes(data.status))return result({error:'État invalide.'},400);statements.push(db.prepare('INSERT INTO member_controls(member_id,status,updated_at,updated_by) VALUES(?,?,?,?) ON CONFLICT(member_id) DO UPDATE SET status=excluded.status,updated_at=excluded.updated_at,updated_by=excluded.updated_by').bind(targetId,data.status,now,user.id));detail=data.status==='suspended'?'Compte suspendu':'Compte réactivé';
+   if(data.action==='revokeSessions'){
+    statements.push(...await ownerSessionRevocations(db,user,target));detail='Sessions WarLike, boîte mail et services liés révoquées ; associations en attente annulées';
+   }else if(data.action==='status'){
+    if(!['active','suspended'].includes(data.status))return result({error:'État invalide.'},400);statements.push(db.prepare('INSERT INTO member_controls(member_id,status,updated_at,updated_by) VALUES(?,?,?,?) ON CONFLICT(member_id) DO UPDATE SET status=excluded.status,updated_at=excluded.updated_at,updated_by=excluded.updated_by').bind(targetId,data.status,now,user.id));if(data.status==='suspended')statements.push(...await memberSessionRevocations(db,targetId));detail=data.status==='suspended'?'Compte suspendu':'Compte réactivé';
    }else if(data.action==='role'){
-    let role:string;try{role=roleChange(user,target,data.role)}catch(e){throw new AdminAccessError((e as Error).message,403)}statements.push(db.prepare("UPDATE members SET role=? WHERE id=? AND role!='owner'").bind(role,targetId));detail=role==='referent'?'Référent désigné':'Rôle membre rétabli';
+    let role:string;try{role=roleChange(user,target,data.role)}catch(e){throw new AdminAccessError((e as Error).message,403)}statements.push(db.prepare("UPDATE members SET role=? WHERE id=? AND role!='owner'").bind(role,targetId));statements.push(...await memberSessionRevocations(db,targetId));detail=role==='referent'?'Référent désigné':'Rôle membre rétabli';
    }else if(data.action==='grant'){
     const site=targets([data.site])[0];if(!['active','revoked'].includes(data.status))return result({error:'Autorisation invalide.'},400);statements.push(db.prepare('INSERT INTO grants(id,member_id,site,status,updated_at,updated_by) VALUES(?,?,?,?,?,?) ON CONFLICT(member_id,site) DO UPDATE SET status=excluded.status,updated_at=excluded.updated_at,updated_by=excluded.updated_by').bind(crypto.randomUUID(),targetId,site,data.status,now,user.id));detail=site+' · '+(data.status==='active'?'autorisation accordée':'autorisation révoquée');
    }else return result({error:'Action inconnue.'},400);

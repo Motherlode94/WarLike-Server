@@ -1,3 +1,4 @@
+import {memberSessionRevocations} from './session-security.ts';
 import {HttpError} from './security.ts';
 import {digest,rateLimit} from './security-store.ts';
 import type {Principal} from './policy.ts';
@@ -39,7 +40,8 @@ export async function setCredential(db:D1Database,actor:Principal,targetId:strin
   const login=normalizedLogin(loginInput),salt=b64(random(32)),verifier=b64(await derive(password,salt,ITERATIONS));
   await db.batch([
     db.prepare('INSERT INTO warlike_credentials(member_id,login,salt,verifier,iterations,version,updated_at,must_change) VALUES(?,?,?,?,?,1,?,1) ON CONFLICT(member_id) DO UPDATE SET login=excluded.login,salt=excluded.salt,verifier=excluded.verifier,iterations=excluded.iterations,version=warlike_credentials.version+1,must_change=1,updated_at=excluded.updated_at').bind(target.id,login,salt,verifier,ITERATIONS,now),
-    db.prepare('DELETE FROM warlike_sessions WHERE member_id=?').bind(target.id),
+    ...await memberSessionRevocations(db,target.id),
+    db.prepare('INSERT INTO audit_events(id,actor_id,action,target_id,detail,created_at) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),actor.id,'security.credentials.reset',target.id,'Identifiants renouvelés ; sessions et associations en attente révoquées',now),
   ]);
 }
 // One-time setup only: never overwrites an existing owner's credentials.
@@ -126,8 +128,10 @@ export async function changePassword(db:D1Database,token:unknown,current:unknown
  const collision=await db.prepare('SELECT member_id FROM warlike_credentials WHERE login=? AND member_id<>?').bind(loginName,user.id).first();
  if(collision)throw new HttpError(409,'Cet identifiant est déjà utilisé.');
  const salt=b64(random(32)),verifier=b64(await derive(next,salt,ITERATIONS));
- const updated=await db.prepare('UPDATE warlike_credentials SET login=?,salt=?,verifier=?,iterations=?,version=version+1,must_change=0,updated_at=? WHERE member_id=? AND version=?').bind(loginName,salt,verifier,ITERATIONS,now,user.id,row.version).run();
- if(!updated.meta.changes)throw new HttpError(409,'Les identifiants ont changé ; reconnecte-toi.');
- // All sessions are invalid immediately through the credential version check.
- await db.prepare('DELETE FROM warlike_sessions WHERE member_id=?').bind(user.id).run();
+ const results=await db.batch([
+  db.prepare('UPDATE warlike_credentials SET login=?,salt=?,verifier=?,iterations=?,version=version+1,must_change=0,updated_at=? WHERE member_id=? AND version=?').bind(loginName,salt,verifier,ITERATIONS,now,user.id,row.version),
+  ...await memberSessionRevocations(db,user.id),
+  db.prepare('INSERT INTO audit_events(id,actor_id,action,target_id,detail,created_at) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),user.id,'security.password.change',user.id,'Mot de passe modifié ; toutes les sessions révoquées',now),
+ ]);
+ if(!results[0].meta.changes)throw new HttpError(409,'Les identifiants ont changé ; reconnecte-toi.');
 }

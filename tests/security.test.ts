@@ -31,7 +31,7 @@ test('a signature nonce is single use and rate windows isolate identities',async
 test('request guard rejects anonymous and cross-site writes before dispatch',async()=>{
  const run=async()=>{throw Error('must not dispatch')};
  await assert.rejects(()=>guardRequest(new Request('https://example.test/api/mail'),{},run),e=>e instanceof HttpError&&e.status===401);
- await assert.rejects(()=>guardRequest(json('{}',{'Origin':'https://evil.test'}),{},run),e=>e instanceof HttpError&&e.status===403);
+ await assert.rejects(()=>guardRequest(new Request('https://warlike-server.vikktor7.chatgpt.site/api/mail',{method:'POST',headers:{origin:'https://evil.test','content-type':'application/json'},body:'{}'}),{},run),e=>e instanceof HttpError&&e.status===403);
 });
 test('a valid signed request dispatches once; replay and changed bodies do not',async()=>{
  const user={userId:'mail-1',email:'one@example.test',fullName:'One',displayName:'One'},secret='s'.repeat(64),body='{"action":"reply"}';
