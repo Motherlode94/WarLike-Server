@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {requestRateScope} from '../lib/request-security.ts';
 import {secureResponse} from '../lib/security.ts';
+import {guardRequest} from '../lib/request-guard.ts';
 
 test('numeric resource identifiers share one rate-limit scope',()=>{
  const first=requestRateScope('GET','/api/hub/projects/1024/versions/5');
@@ -35,4 +36,15 @@ test('JSON APIs deny scripts, frames and forms without impacting HTML',()=>{
 test('already restrictive CSP on HTML is preserved',()=>{
  const response=secureResponse(new Response('<p>Hi</p>',{headers:{'Content-Type':'text/html','Content-Security-Policy':"default-src 'none'"}}),new Request('https://warlike-server.example/'));
  assert.equal(response.headers.get('Content-Security-Policy'),"default-src 'none'");
+});
+
+test('TRACE, TRACK and CONNECT are rejected before public route dispatch',async()=>{
+ for(const method of ['TRACE','TRACK','CONNECT']){
+  const request=new Request('https://warlike-server.example/');
+  // Undici disallows creating such requests, so simulate an incoming Worker request.
+  Object.defineProperty(request,'method',{value:method});
+  let called=false;
+  await assert.rejects(guardRequest(request,{},()=>{called=true;return new Response('unexpected');}),{status:405});
+  assert.equal(called,false,method+' must never reach the router');
+ }
 });
