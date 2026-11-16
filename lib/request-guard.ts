@@ -12,6 +12,8 @@ const ORIGIN = 'https://warlike-server.vikktor7.chatgpt.site';
 export async function guardRequest(request: Request, env: { DB?: D1Database; WARLIKE_BRIDGE_KEY?: string; WARLIKE_OWNER_EMAIL?: string; WARLIKE_AUTH_ENABLED?: string; WARLIKE_BOOTSTRAP_SECRET?: string }, run: (request: Request) => Response | Promise<Response>, development=false): Promise<Response> {
   const url = new URL(request.url), api = url.pathname.startsWith('/api/');
   assertUnambiguousPath(url);
+  // Never dispatch HTTP tracing or tunnel methods, including on public pages.
+  if (['TRACE','TRACK','CONNECT'].includes(request.method.toUpperCase())) throw new HttpError(405,'Méthode non autorisée.');
   // Only the operational health endpoint is public. Never expose private mailbox data here.
   if (url.pathname === '/api/health' && request.method === 'GET') {
     return withRequestIdentity(null, null, () => run(request));
