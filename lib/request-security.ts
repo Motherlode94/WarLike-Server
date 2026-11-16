@@ -15,5 +15,12 @@ export async function limitApiRequest(db:D1Database,memberId:string,request:Requ
  if(write&&request.headers.get('content-type')?.toLowerCase().startsWith('multipart/form-data;'))await rateLimit(db,memberId,'media-upload',20,3600);
 }
 export function requestRateScope(method:string,path:string) {
- return method+':'+path.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,':id');
+ // Keep one budget for routes that differ only by resource identifiers.
+ // Query strings are intentionally excluded by callers; replacing identifiers
+ // prevents unbounded D1 rate-window rows and route-specific budget bypasses.
+ const normalized=path
+  .replace(/\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?=\/|$)/gi,'/:id')
+  .replace(/\/[0-9]+(?=\/|$)/g,'/:id')
+  .replace(/\/[A-Za-z0-9_-]{43}(?=\/|$)/g,'/:token');
+ return method.toUpperCase()+':'+normalized;
 }
