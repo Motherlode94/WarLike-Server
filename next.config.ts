@@ -11,7 +11,19 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      // Private API responses must never be stored by a shared cache.
+      { source: "/api/:path*", headers: [
+        { key: "Cache-Control", value: "private, no-store, max-age=0" },
+        { key: "X-Robots-Tag", value: "noindex, nofollow" },
+      ] },
+      // Admin pages are not public search content.
+      { source: "/admin/:path*", headers: [
+        { key: "Cache-Control", value: "private, no-store, max-age=0" },
+        { key: "X-Robots-Tag", value: "noindex, nofollow" },
+      ] },
+    ];
   }
 };
 
