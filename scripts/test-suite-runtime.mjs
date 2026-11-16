@@ -22,7 +22,7 @@ for(const [id,name,role] of [['WL-TEST-OWNER','Runtime Owner','owner'],['WL-TEST
 const seedFile=join(state,'seed.sql');await writeFile(seedFile,seed,{mode:0o600});
 const wrangler=join(root,'node_modules/wrangler/bin/wrangler.js'),config=join(root,'dist/server/wrangler.json');
 execFileSync(process.execPath,[wrangler,'d1','execute','DB','--local','--persist-to',state,'--config',config,'--file',seedFile],{stdio:'pipe'});
-const runtime=spawn(process.execPath,[wrangler,'dev','--local','--config',config,'--persist-to',state,'--local-protocol','https','--ip','127.0.0.1','--port','8787','--inspector-port','0','--log-level','error'],{stdio:['ignore','pipe','pipe']});
+const runtime=spawn(process.execPath,[wrangler,'dev','--local','--config',config,'--persist-to',state,'--local-protocol','https','--ip','127.0.0.1','--port','8787','--inspector-port','0','--var','WARLIKE_OWNER_EMAIL:wl-test-owner@example.test','--var','WARLIKE_BRIDGE_KEY:'+randomBytes(32).toString('base64url'),'--log-level','error'],{stdio:['ignore','pipe','pipe']});
 let logs='';runtime.stdout.on('data',x=>{logs+=x});runtime.stderr.on('data',x=>{logs+=x});
 const api=await request.newContext({ignoreHTTPSErrors:true});let browser;
 const checks=[],errors=[];
@@ -41,7 +41,7 @@ async function application(context,app){
 }
 async function associate(page,app,name='Runtime Alice',loginId){await page.getByRole('button',{name:'Connexion WarLike',exact:true}).click();if(loginId){await page.getByRole('link',{name:'Se connecter avec mon compte WarLike',exact:true}).click();await page.getByLabel('Identifiant',{exact:true}).fill(loginId.toLowerCase());await page.getByLabel('Mot de passe',{exact:true}).fill(password);await Promise.all([page.waitForURL(u=>u.pathname==='/connect/'+app),page.getByRole('button',{name:'Se connecter',exact:true}).click()]);passed('Unauthenticated consent returns through native login without losing PKCE state')}await page.screenshot({path:join(output,app+'-consent.png'),fullPage:true});await page.getByRole('button',{name:'Autoriser WarLike '+(app==='academy'?'Academy':'Business'),exact:true}).click();await page.waitForURL(apps[app]+'/**');await page.getByText('Connecté : '+name,{exact:true}).waitFor();assert.equal(new URL(page.url()).hash,'');assert.equal(await page.evaluate(()=>localStorage.length),0);assert.equal(await page.evaluate(()=>sessionStorage.length),0)}
 try{
- for(let i=0;i<120;i++){try{const r=await api.get(server+'/api/health');if(r.ok())break}catch{}if(i===119)throw Error('Worker startup timeout');await new Promise(r=>setTimeout(r,500))}
+ for(let i=0;i<120;i++){try{const r=await api.get(server+'/api/health');if(r.ok())break;if(i===119)throw Error('Health status '+r.status()+': '+await r.text())}catch(error){if(i===119)throw error}if(runtime.exitCode!==null)throw Error('Worker exited before readiness: '+runtime.exitCode);await new Promise(r=>setTimeout(r,500))}
  browser=await chromium.launch({headless:true});
  const owner=await browser.newContext({ignoreHTTPSErrors:true}),ownerPage=await owner.newPage();
  await login(ownerPage,'WL-TEST-OWNER');await ownerPage.goto(server+'/applications');
