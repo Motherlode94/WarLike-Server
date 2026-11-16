@@ -139,3 +139,9 @@ Ce dépôt ne propose ni SMTP/IMAP ni un fournisseur d'envoi d'e-mails vers Inte
 Le projet Pages `warlike-server.pages.dev` ne déploie **pas** le serveur applicatif Vinext. Il héberge une page statique de statut dans `pages-public/` et une fonction de diagnostic en lecture seule dans `functions/api/health.js`. La configuration Pages utilise `exit 0` et le dossier de sortie `pages-public` ; les réponses de santé sont intentionnellement `503` tant que l'application Workers et ses bindings ne sont pas déployés dans un environnement compatible. **Ne pas interpréter un déploiement Pages réussi comme une messagerie fonctionnelle.**
 
 Pour l'application complète, utiliser une cible Cloudflare Workers compatible Vinext, appliquer les migrations D1 et configurer secrets, bindings et fournisseur d'identité fiable. L'hébergement privé Sites existant est une plateforme distincte.
+
+## Renforcement — confidentialité des réponses API et pages admin (novembre 2026)
+
+Les réponses des routes `/api/:path*` et `/admin/:path*` reçoivent désormais `Cache-Control: private, no-store, max-age=0` et `X-Robots-Tag: noindex, nofollow`, en complément des en-têtes globaux (anti-iframe, anti-sniffing, HSTS, Permissions-Policy et Referrer-Policy). Ce durcissement réduit les risques de mise en cache partagée ou d'indexation de données sensibles.
+
+La route `/api/health` reste volontairement publique, limitée à un statut de disponibilité et non aux détails de secrets, tables ou bindings. Le contrôle automatisé `response-security.yml` vérifie ces invariants. Cela **ne remplace pas** les audits d'authentification, de permissions, de D1/R2 ou les tests HTTP de production.
