@@ -50,6 +50,34 @@
       "when": 1794000000000,
       "tag": "0006_warlike_auth",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1794100000000,
+      "tag": "0007_heart_pairing",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1794186400000,
+      "tag": "0008_studio_projects",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1794272800000,
+      "tag": "0009_studio_pairing",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1794359200000,
+      "tag": "0010_suite_app_access",
+      "breakpoints": true
     }
   ]
 }

@@ -1,7 +1,10 @@
 'use client';
-import {useState} from 'react';
+import {useState,useEffect} from 'react';
+import {validAppReturn} from '../../lib/app-contract';
 
 export default function ChangePassword(){
+ const [loginUrl,setLoginUrl]=useState('/connexion');
+ useEffect(()=>{const value=new URLSearchParams(location.search).get('return_to');if(validAppReturn(value))setLoginUrl('/connexion?return_to='+encodeURIComponent(value))},[]);
  const [currentPassword,setCurrent]=useState(''),[newLogin,setLogin]=useState(''),[newPassword,setNew]=useState(''),[confirmation,setConfirmation]=useState(''),[message,setMessage]=useState(''),[busy,setBusy]=useState(false),[success,setSuccess]=useState(false);
  async function submit(e:React.FormEvent){
   e.preventDefault();
@@ -29,7 +32,7 @@ export default function ChangePassword(){
     <button type="submit" disabled={busy} style={{display:'block',width:'100%',minHeight:48,padding:'12px 18px',background:'#68e2be',color:'#101b1a',border:0,borderRadius:8,fontWeight:700,fontSize:15,cursor:'pointer'}}>{busy?'Modification…':'Modifier mes identifiants'}</button>
    </form>}
    {message&&<p role="status" style={{display:'block',color:success?'#8ee9c8':'#ffaaa5',lineHeight:1.5,margin:'18px 0'}}>{message}</p>}
-   <a href="/connexion" style={{display:'inline-block',color:'#8ee9c8',marginTop:20,textDecoration:'underline'}}>Retour à la connexion WarLike</a>
+   <a href={loginUrl} style={{display:'inline-block',color:'#8ee9c8',marginTop:20,textDecoration:'underline'}}>Retour à la connexion WarLike</a>
   </section>
  </main>;
 }

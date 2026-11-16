@@ -1,0 +1,39 @@
+name: Academy and Business platform
+on:
+  pull_request:
+    paths: ['lib/**', 'app/**', 'drizzle/**', 'worker/**', 'examples/**', 'scripts/test-suite-runtime.mjs', 'tests/**', 'package.json', 'pnpm-lock.yaml', 'vite.cloudflare.config.ts', '.github/workflows/suite-app-platform.yml']
+  push:
+    branches: [main]
+    paths: ['lib/**', 'app/**', 'drizzle/**', 'worker/**', 'examples/**', 'scripts/test-suite-runtime.mjs', 'tests/**', 'package.json', 'pnpm-lock.yaml', 'vite.cloudflare.config.ts', '.github/workflows/suite-app-platform.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  runtime-and-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24'
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa
+        with:
+          version: '11.25.0'
+          run_install: false
+      - run: npm run install:ci
+      - run: node --experimental-strip-types --test tests/*.test.ts
+      - run: node node_modules/typescript/bin/tsc --noEmit
+      - run: node node_modules/vite/bin/vite.js build --config vite.cloudflare.config.ts
+      - run: node node_modules/wrangler/bin/wrangler.js deploy --dry-run --config dist/server/wrangler.json
+      - run: node node_modules/playwright/cli.js install --with-deps chromium
+      - run: node scripts/test-suite-runtime.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: suite-runtime-evidence
+          path: outputs/suite-runtime/
+          if-no-files-found: warn
+          retention-days: 7

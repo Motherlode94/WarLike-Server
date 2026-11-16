@@ -6,7 +6,7 @@ import {assertHubMembership} from './hub-policy.ts';
 import {HttpError} from './security.ts';
 import type {Principal} from './policy.ts';
 
-const publicPages=new Set(['/','/inscription','/signin-with-chatgpt','/signout-with-chatgpt','/callback','/connect/heart','/connect/studio']);
+const publicPages=new Set(['/','/inscription','/signin-with-chatgpt','/signout-with-chatgpt','/callback','/connect/heart','/connect/studio','/connect/academy','/connect/business']);
 export function protectedPage(path:string){
  if(publicPages.has(path))return false;
  // Build assets contain no account data. Application routes are private by default.
@@ -19,7 +19,7 @@ export async function authorizePrincipal(db:D1Database,user:Principal,url:URL){
  if(!enrollment)assertHubMembership(user,(await hubMembership(db,user)).status);
  if((/^\/(?:admin|inscriptions)(?:\/|$)/.test(url.pathname)||url.pathname==='/api/admin'||url.pathname==='/api/hub'&&url.searchParams.get('queue')==='1')&&!['owner','referent'].includes(user.role))throw new HttpError(403,'Espace réservé aux responsables.');
  if(/^\/serveur(?:\/|$)/.test(url.pathname)&&user.role!=='owner')throw new HttpError(403,'Infrastructure réservée au propriétaire.');
- if(/^\/comptes(?:\/|$)/.test(url.pathname)&&user.role!=='owner')throw new HttpError(403,'Gestion des comptes réservée au propriétaire.');
+ if(/^\/(?:comptes|applications)(?:\/|$)/.test(url.pathname)&&user.role!=='owner')throw new HttpError(403,'Gestion des comptes réservée au propriétaire.');
  return user;
 }
 export async function authorizeApplication(db:D1Database,auth:ForwardedUser,ownerEmail:string,fromMail:boolean,url:URL){
