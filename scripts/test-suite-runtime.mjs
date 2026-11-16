@@ -27,7 +27,7 @@ let logs='';runtime.stdout.on('data',x=>{logs+=x});runtime.stderr.on('data',x=>{
 const api=await request.newContext({ignoreHTTPSErrors:true});let browser;
 const checks=[],errors=[];
 function passed(name){checks.push(name);console.log('PASS '+name)}
-async function login(page,id){await page.goto(server+'/connexion');await page.getByLabel('Identifiant',{exact:true}).fill(id.toLowerCase());await page.getByLabel('Mot de passe',{exact:true}).fill(password);await Promise.all([page.waitForURL(u=>u.pathname==='/'),page.getByRole('button',{name:'Se connecter',exact:true}).click()])}
+async function login(page,id){await page.goto(server+'/connexion');await page.getByLabel('Identifiant',{exact:true}).fill(id.toLowerCase());await page.getByLabel('Mot de passe',{exact:true}).fill(password);const [response]=await Promise.all([page.waitForResponse(r=>r.url()===server+'/api/warlike-auth/login'&&r.request().method()==='POST'),page.getByRole('button',{name:'Se connecter',exact:true}).click()]);assert.equal(response.status(),200,'Native login: '+await response.text());await page.waitForURL(u=>u.pathname==='/')}
 const clientSource=await readFile('examples/suite-client.mjs','utf8');
 async function application(context,app){
  const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
@@ -78,6 +78,9 @@ try{
  assert.equal(await business.evaluate(async()=>{try{await client.request('/me')}catch(e){return e.status}}),401);passed('Entitlement revocation invalidates an existing browser session');
  assert.deepEqual(errors,[]);passed('No browser page errors');
  await writeFile(join(output,'report.json'),JSON.stringify({checks,passed:checks.length},null,2)+'\n');
+}catch(error){
+ let index=0;for(const context of browser?.contexts()||[])for(const page of context.pages()){try{await page.screenshot({path:join(output,'failure-'+index+'.png'),fullPage:true});console.error('Browser page '+index+': '+(await page.locator('body').innerText()).slice(0,1600));index++}catch{}}
+ throw error;
 }finally{
  await browser?.close();await api.dispose();runtime.kill('SIGTERM');await new Promise(r=>{if(runtime.exitCode!==null)return r();runtime.once('exit',r);setTimeout(r,5000).unref()});
  // Never publish request URLs or credentials in artifacts; runtime logs only surfaced on failure after redaction.
