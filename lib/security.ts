@@ -59,6 +59,12 @@ export function secureResponse(response: Response, request: Request, development
     headers.set('X-Robots-Tag','noindex, nofollow, noarchive');
     const vary=new Set((headers.get('Vary')||'').split(',').map(x=>x.trim()).filter(Boolean));vary.add('Cookie');vary.add('Authorization');headers.set('Vary',[...vary].join(', '));
   }
+  // JSON APIs are data endpoints, never executable or embeddable documents.
+  // Keep the broader HTML policy intact for the existing WarLike applications.
+  const responseType=(headers.get('content-type')||'').toLowerCase();
+  if (new URL(request.url).pathname.startsWith('/api/') &&
+      (responseType.includes('application/json') || responseType.includes('+json')))
+    headers.set('Content-Security-Policy', "default-src 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'none'");
   if (!headers.has('Content-Security-Policy')) headers.set('Content-Security-Policy', [
     "default-src 'self'", "base-uri 'self'", "object-src 'none'",
     "frame-ancestors 'self' https://chatgpt.com https://*.chatgpt.com",
