@@ -30,7 +30,10 @@ function passed(name){checks.push(name);console.log('PASS '+name)}
 async function login(page,id){await page.goto(server+'/connexion');await page.getByLabel('Identifiant',{exact:true}).fill(id.toLowerCase());await page.getByLabel('Mot de passe',{exact:true}).fill(password);const [response]=await Promise.all([page.waitForResponse(r=>r.url()===server+'/api/warlike-auth/login'&&r.request().method()==='POST'),page.getByRole('button',{name:'Se connecter',exact:true}).click()]);if(response.status()!==200)throw Error('Native login '+response.status()+': '+await response.text());await page.waitForURL(u=>u.pathname==='/',{waitUntil:'domcontentloaded',timeout:15000}).catch(async error=>{const details={url:page.url(),pageErrors:errors.slice(-5),body:(await page.locator('body').innerText().catch(()=>'' )).slice(0,1100)};throw Error('Native login redirect failed: '+JSON.stringify(details),{cause:error})})}
 const clientSource=await readFile('examples/suite-client.mjs','utf8');
 async function application(context,app){
- const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
+ // The production app origins target an isolated loopback Worker in CI. Grant
+ // Chromium's explicit local-network permission, while keeping CORS enforced.
+ await context.grantPermissions(['local-network-access'],{origin:apps[app]});
+ const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));page.on('requestfailed',r=>console.error('Browser request failed',new URL(r.url()).pathname,r.failure()?.errorText));
  await page.route(apps[app]+'/**',async route=>{
   const url=new URL(route.request().url());
   if(url.pathname==='/client.mjs')return route.fulfill({contentType:'text/javascript',body:clientSource});
