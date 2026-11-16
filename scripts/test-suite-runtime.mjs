@@ -22,7 +22,7 @@ for(const [id,name,role] of [['WL-TEST-OWNER','Runtime Owner','owner'],['WL-TEST
 const seedFile=join(state,'seed.sql');await writeFile(seedFile,seed,{mode:0o600});
 const wrangler=join(root,'node_modules/wrangler/bin/wrangler.js'),config=join(root,'dist/server/wrangler.json');
 execFileSync(process.execPath,[wrangler,'d1','execute','DB','--local','--persist-to',state,'--config',config,'--file',seedFile],{stdio:'pipe'});
-const runtime=spawn(process.execPath,[wrangler,'dev','--local','--config',config,'--persist-to',state,'--local-protocol','https','--ip','127.0.0.1','--port','8787','--inspector-port','0','--var','WARLIKE_OWNER_EMAIL:wl-test-owner@example.test','--var','WARLIKE_BRIDGE_KEY:'+randomBytes(32).toString('base64url'),'--log-level','error'],{stdio:['ignore','pipe','pipe']});
+const runtime=spawn(process.execPath,[wrangler,'dev','--local','--config',config,'--persist-to',state,'--local-protocol','https','--upstream-protocol','https','--ip','127.0.0.1','--port','8787','--inspector-port','0','--var','WARLIKE_OWNER_EMAIL:wl-test-owner@example.test','--var','WARLIKE_BRIDGE_KEY:'+randomBytes(32).toString('base64url'),'--log-level','error'],{stdio:['ignore','pipe','pipe']});
 let logs='';runtime.stdout.on('data',x=>{logs+=x});runtime.stderr.on('data',x=>{logs+=x});
 const api=await request.newContext({ignoreHTTPSErrors:true});let browser;
 const checks=[],errors=[];
