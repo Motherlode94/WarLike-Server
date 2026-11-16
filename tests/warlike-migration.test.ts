@@ -5,7 +5,8 @@ import {DatabaseSync} from 'node:sqlite';
 test('la migration des comptes est déclarée et ses instructions sont exécutables séparément',()=>{
  const root=new URL('../drizzle/',import.meta.url);
  const journal=JSON.parse(readFileSync(new URL('meta/_journal.json',root),'utf8'));
- assert.equal(journal.entries.at(-1).tag,'0006_warlike_auth');
+ assert.equal(journal.entries.filter((entry:any)=>entry.tag==='0006_warlike_auth').length,1);
+ assert.equal(journal.entries[6].tag,'0006_warlike_auth');
  const migration=readFileSync(new URL('0006_warlike_auth.sql',root),'utf8');
  const statements=migration.split('--> statement-breakpoint').map(s=>s.trim()).filter(Boolean);
  assert.equal(statements.length,4);

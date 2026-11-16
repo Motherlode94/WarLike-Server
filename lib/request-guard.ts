@@ -1,3 +1,4 @@
+import {isAppEndpoint,applicationHttp} from './app-http.ts';
 import {assertUnambiguousPath,limitApiRequest,requestRateScope} from './request-security.ts';
 import {authorizeApplication,authorizePrincipal,protectedPage} from './application-access.ts';
 import { verifyClaim } from './bridge.ts';
@@ -14,6 +15,7 @@ export async function guardRequest(request: Request, env: { DB?: D1Database; WAR
   assertUnambiguousPath(url);
   // Never dispatch HTTP tracing or tunnel methods, including on public pages.
   if (['TRACE','TRACK','CONNECT'].includes(request.method.toUpperCase())) throw new HttpError(405,'Méthode non autorisée.');
+  if(isAppEndpoint(url.pathname))return applicationHttp(request,env);
   // Only the operational health endpoint is public. Never expose private mailbox data here.
   if (url.pathname === '/api/health' && request.method === 'GET') {
     return withRequestIdentity(null, null, () => run(request));

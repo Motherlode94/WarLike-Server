@@ -5,13 +5,13 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/deploy-cloudflare-runtime.yml'
-      - 'app/api/heart/**'
-      - 'app/connect/heart/**'
-      - 'lib/heart-pairing.ts'
-      - 'lib/request-guard.ts'
-      - 'lib/application-access.ts'
-      - 'app/connexion/view.tsx'
-      - 'drizzle/0007_heart_pairing.sql'
+      - 'app/**'
+      - 'lib/**'
+      - 'worker/**'
+      - 'drizzle/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'vite.cloudflare.config.ts'
 permissions:
   contents: read
 jobs:
@@ -39,6 +39,14 @@ jobs:
       - run: node node_modules/vite/bin/vite.js build --config vite.cloudflare.config.ts
       - run: node node_modules/wrangler/bin/wrangler.js deploy --dry-run --config dist/server/wrangler.json
       - run: node --test tests/worker-observability.test.mjs
+      - run: node node_modules/playwright/cli.js install --with-deps chromium
+      - run: node scripts/test-suite-runtime.mjs
+      - name: Record D1 recovery bookmark before the additive migration
+        run: node node_modules/wrangler/bin/wrangler.js d1 time-travel info warlike-server --config dist/server/wrangler.json --json
+      - name: Apply Academy and Business schema without resetting existing data
+        run: node node_modules/wrangler/bin/wrangler.js d1 execute warlike-server --remote --config dist/server/wrangler.json --file drizzle/0010_suite_app_access.sql --yes
+      - name: Verify the target D1 schema
+        run: node node_modules/wrangler/bin/wrangler.js d1 execute warlike-server --remote --config dist/server/wrangler.json --command "SELECT operation_id,status FROM app_organization_members LIMIT 0; SELECT operation_id,revision FROM app_drafts LIMIT 0; SELECT token_hash,access_version FROM app_access_sessions LIMIT 0;" --yes
       - name: Deploy private runtime
         run: node node_modules/wrangler/bin/wrangler.js deploy --config dist/server/wrangler.json
       - name: Protect request query parameters in logs

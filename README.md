@@ -1,7 +1,7 @@
 # WarLike Server
 
-> Site : https://warlike-server.vikktor7.chatgpt.site/
-> Source publiée : `63a45a8230746d429ea798fcb782f85f5eb83e0b`.
+> Runtime Cloudflare : https://warlike-server.pages.dev/
+> Site privé historique : https://warlike-server.vikktor7.chatgpt.site/
 > Secrets et données privées exclus.
 
 Développement et direction : **Hardi Victor MBANVU / HardieBay**.
@@ -19,13 +19,19 @@ Espace privé de l’univers WarLike, avec une identité commune et des données
 
 ## Identité et comptes
 
-La connexion utilise Sign in with ChatGPT. Le client WarLike Mail transmet une identité signée HMAC-SHA256, valable 30 secondes. Le serveur vérifie la signature, retrouve l’identifiant WarLike et relit le rôle en base à chaque action. Les secrets ne sont jamais fournis au navigateur.
+Le runtime Cloudflare utilise les comptes WarLike natifs lorsque `WARLIKE_AUTH_ENABLED=true` : identifiant et mot de passe scrypt, cookie sécurisé HttpOnly, sessions de huit heures et droits relus dans D1. La connexion historique ChatGPT et le pont Mail signé restent du code de compatibilité ; le mode natif refuse ce pont. Aucun mot de passe ni secret serveur n’est fourni aux applications clientes.
 
-Variables privées requises : `WARLIKE_OWNER_EMAIL` et `WARLIKE_BRIDGE_KEY`. La base utilise le binding `DB` ; les images et fichiers audio utilisent `BUCKET`. Les migrations Drizzle sont versionnées dans `drizzle/` et sont appliquées par l’hébergement.
+Variables selon le mode de déploiement : `WARLIKE_AUTH_ENABLED`, `WARLIKE_OWNER_EMAIL` et, pour le pont historique uniquement, `WARLIKE_BRIDGE_KEY`. La base utilise le binding `DB` ; les images et fichiers audio utilisent `BUCKET`. Les migrations Drizzle sont versionnées dans `drizzle/` et sont appliquées par l’hébergement.
 
 Le propriétaire conserve les droits Dev / Admin et ne peut pas être suspendu ou rétrogradé depuis la console. La migration prépare **5 profils testeurs et 4 profils approbateurs** ; la commande de préparation de la console est également idempotente. Ces profils sont des places à attribuer, sans mot de passe partagé ni identité fictive. Il faut associer une adresse réelle, puis autoriser la personne dans le partage privé du Site. L’association ne transmet aucune invitation automatiquement.
 
 Les approbateurs correspondent au rôle `referent` : ils traitent les demandes, modèrent les œuvres et gèrent les membres ordinaires. Seul le propriétaire nomme d’autres approbateurs et contrôle la maintenance. Une suspension est vérifiée sur les prochaines requêtes authentifiées. La présence signifie qu’un appel API a été observé dans les deux dernières minutes ; ce n’est pas une connexion WebSocket en temps réel. La console affiche des mesures D1 réelles, sans inventer de CPU ou de RAM.
+
+## Academy et Business
+
+Le contrat commun ajoute des associations PKCE à usage unique, des sessions séparées par application, une gestion propriétaire des accès (`/applications`), des brouillons Academy privés et des organisations Business isolées. Les données inconnues sont conservées et les sauvegardes utilisent des révisions pour refuser les écrasements obsolètes.
+
+Voir [le contrat HTTP et la mise en production](docs/suite-app-api.md) et [le client navigateur de référence](examples/suite-client.mjs). Les interfaces Academy et Business restent à raccorder dans leurs propres dépôts. Les cours publiés, notes officielles, factures légales et paiements ne sont pas implémentés par ce stockage de brouillons.
 
 ## Communauté
 
