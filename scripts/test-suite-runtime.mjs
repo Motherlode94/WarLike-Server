@@ -66,6 +66,9 @@ try{
  const grantBob=await owner.request.post(server+'/api/apps/access',{headers:{Origin:server},data:{app:'business',memberId:'WL-TEST-BOB',role:'member',enabled:true}});assert.equal(grantBob.status(),200);
  const bob=await browser.newContext({ignoreHTTPSErrors:true}),bobLogin=await bob.newPage();await login(bobLogin,'WL-TEST-BOB');const bobBusiness=await application(bob,'business');await associate(bobBusiness,'business','Runtime Bob');
  assert.equal(await bobBusiness.evaluate(async org=>{try{await client.request('/organizations/'+org+'/drafts')}catch(e){return e.status}},company.id),404);
+ const membersUrl=server+'/api/business/organizations/'+company.id+'/members';
+ const preflight=await api.fetch(membersUrl,{method:'OPTIONS',headers:{Origin:apps.business,'Access-Control-Request-Method':'POST','Access-Control-Request-Headers':'authorization,content-type'}});
+ console.log('DIAGNOSTIC Business membership preflight',JSON.stringify({status:preflight.status(),allowOrigin:preflight.headers()['access-control-allow-origin']||null,allowMethods:preflight.headers()['access-control-allow-methods']||null,allowHeaders:preflight.headers()['access-control-allow-headers']||null,body:(await preflight.text()).slice(0,400)}));
  await business.evaluate(org=>client.request('/organizations/'+org+'/members',{method:'POST',body:{memberId:'WL-TEST-BOB',role:'viewer',expectedRevision:0}}),company.id);
  assert.equal((await bobBusiness.evaluate(org=>client.request('/organizations/'+org+'/drafts'),company.id)).drafts.length,1);
  assert.equal(await bobBusiness.evaluate(async org=>{try{await client.request('/organizations/'+org+'/drafts',{method:'POST',body:{title:'Forbidden',payload:{}}})}catch(e){return e.status}},company.id),403);
