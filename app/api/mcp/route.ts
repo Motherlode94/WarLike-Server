@@ -20,6 +20,19 @@ const tools=[
  {name:'warlike_set_component_property',description:'Set a scalar property on a Component. Edit mode only.',inputSchema:{type:'object',properties:{id:{type:'integer',minimum:1},component:{type:'string',minLength:1,maxLength:64},property:{type:'string',minLength:1,maxLength:64},value:{type:['string','number','boolean','null']}},required:['id','component','property','value'],additionalProperties:false}},
  {name:'warlike_command_result',description:'Read the result of an earlier queued MCP editor command.',inputSchema:{type:'object',properties:{commandId:{type:'string',minLength:10,maxLength:80}},required:['commandId'],additionalProperties:false}}
 ];
+// Tool calls must explicitly target the tab's session. Never silently select the
+// most-recent tab: that can mutate another user or project's scene.
+const sessionSchema={type:'string',pattern:'^[0-9a-fA-F-]{36}$',description:'Session UUID displayed by the connected Engine tab.'};
+const sessionTools=tools.map(tool=>({
+ ...tool,
+ inputSchema:{
+  ...tool.inputSchema,
+  properties:{...tool.inputSchema.properties,sessionId:sessionSchema},
+  required:[...('required' in tool.inputSchema?(tool.inputSchema.required??[]):[]), 'sessionId']
+ }
+}));
+const listSessionsTool={name:'warlike_list_sessions',description:'List active authorized Engine sessions and permissions; select one sessionId for subsequent commands.',inputSchema:{type:'object',properties:{},additionalProperties:false}};
+const uuidPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 type RuntimeEnv={DB?:D1Database;WARLIKE_MCP_TOKEN?:string;WARLIKE_MCP_EDITOR_TOKEN?:string};
 const config=env as unknown as RuntimeEnv;
 const serverOrigin='https://warlike-engine.pages.dev';
@@ -38,7 +51,8 @@ function validArguments(name:string,args:unknown){
  const obj=args as Record<string,unknown>;
  const key=name.replace(/^warlike_/,'') as Command;
  const allowed=commands[key];if(!allowed)return false;
- if(Object.keys(obj).some(x=>!allowed.includes(x)))return false;
+ if(Object.keys(obj).some(x=>x!=='sessionId'&&!allowed.includes(x)))return false;
+ if(typeof obj.sessionId!=='string'||!uuidPattern.test(obj.sessionId))return false;
  if(name==='warlike_list_objects')return obj.limit===undefined||Number.isSafeInteger(obj.limit)&&Number(obj.limit)>0&&Number(obj.limit)<=100;
  if(!Number.isSafeInteger(obj.id)||Number(obj.id)<1)return false;
  if(['warlike_add_component','warlike_get_component','warlike_set_component_property'].includes(name)&& (typeof obj.component!=='string'||! /^[a-zA-Z][\w-]{0,63}$/.test(obj.component)))return false;
@@ -63,18 +77,24 @@ export async function POST(request:Request){
  if(msg.method==='initialize')return rpc(id,{protocolVersion:'2025-06-18',capabilities:{tools:{listChanged:false}},serverInfo:{name:'WarLike Server MCP Relay',version:'0.1.0'}});
  if(msg.method==='notifications/initialized')return new Response(null,{status:202});
  if(msg.method==='ping')return rpc(id,{});
- if(msg.method==='tools/list')return rpc(id,{tools});
+ if(msg.method==='tools/list')return rpc(id,{tools:[listSessionsTool,...sessionTools]});
  if(msg.method!=='tools/call')return error(id,-32601,'Method not found');
  const name=msg.params?.name,args=msg.params?.arguments||{};
+ if(name==='warlike_list_sessions'){
+  if(Object.keys(args).length)return error(id,-32602,'Invalid arguments');
+  await ensureSchema(config.DB);
+  const active=await config.DB.prepare('SELECT id,permission,last_seen FROM mcp_editor_sessions WHERE last_seen>? ORDER BY last_seen DESC LIMIT 30').bind(Date.now()-30000).all<{id:string;permission:string;last_seen:number}>();
+  return rpc(id,resultText({sessions:active.results||[]}));
+ }
  if(name==='warlike_command_result'){
   await ensureSchema(config.DB);
-  if(typeof args.commandId!=='string'||!/^[0-9a-f-]{36}$/i.test(args.commandId))return error(id,-32602,'Invalid commandId');
-  const command=await config.DB.prepare('SELECT state,result FROM mcp_editor_commands WHERE id=?').bind(args.commandId).first<{state:string;result:string|null}>();
+  if(typeof args.commandId!=='string'||!uuidPattern.test(args.commandId)||typeof args.sessionId!=='string'||!uuidPattern.test(args.sessionId)||Object.keys(args).some((key:string)=>!['commandId','sessionId'].includes(key)))return error(id,-32602,'Invalid commandId or sessionId');
+  const command=await config.DB.prepare('SELECT state,result FROM mcp_editor_commands WHERE id=? AND session_id=?').bind(args.commandId,args.sessionId).first<{state:string;result:string|null}>();
   return rpc(id,resultText(command?{state:command.state,result:command.result?JSON.parse(command.result):null}:{state:'not_found'}));
  }
  if(!tools.some(t=>t.name===name)||!validArguments(name,args))return error(id,-32602,'Invalid tool or arguments');
  await ensureSchema(config.DB);
- const session=await config.DB.prepare('SELECT id,permission FROM mcp_editor_sessions WHERE last_seen > ? ORDER BY last_seen DESC LIMIT 1').bind(Date.now()-30000).first<{id:string;permission:string}>();
+ const session=await config.DB.prepare('SELECT id,permission FROM mcp_editor_sessions WHERE id=? AND last_seen > ? LIMIT 1').bind(args.sessionId,Date.now()-30000).first<{id:string;permission:string}>();
  if(!session)return rpc(id,{isError:true,...resultText({error:'Aucun onglet WarLike Engine autorisé et connecté.'})});
  if(!['warlike_list_objects','warlike_get_component'].includes(name)&&session.permission!=='edit')return rpc(id,{isError:true,...resultText({error:'L’onglet Engine est connecté en lecture seule.'})});
  const commandId=crypto.randomUUID(),now=Date.now();
@@ -89,7 +109,9 @@ export async function GET(request:Request){
  const url=new URL(request.url),id=url.searchParams.get('session');
  if(!id||!/^[0-9a-f-]{36}$/i.test(id))return response({error:'Invalid session'},400);
  const now=Date.now();
- await config.DB.prepare('UPDATE mcp_editor_sessions SET last_seen=? WHERE id=?').bind(now,id).run();
+ const heartbeat=await config.DB.prepare('UPDATE mcp_editor_sessions SET last_seen=? WHERE id=? AND last_seen>?').bind(now,id,now-30000).run();
+ if((heartbeat.meta?.changes||0)!==1)return response({error:'Session disconnected or expired'},404);
+ await config.DB.prepare("UPDATE mcp_editor_commands SET state='expired',updated_at=? WHERE session_id=? AND state='pending' AND created_at<?").bind(now,id,now-60000).run();
  const row=await config.DB.prepare("SELECT id,kind,args FROM mcp_editor_commands WHERE session_id=? AND state='pending' AND created_at>? ORDER BY created_at LIMIT 1").bind(id,now-60000).first<{id:string;kind:string;args:string}>();
  return response({command:row?{id:row.id,name:row.kind,args:JSON.parse(row.args)}:null});
 }
@@ -108,10 +130,11 @@ export async function PUT(request:Request){
  if(body?.action==='result'&&typeof body.session==='string'&&typeof body.commandId==='string'){
   const result=JSON.stringify(body.result??null);
   if(result.length>8192)return response({error:'Result too large'},413);
-  const done=await config.DB.prepare("UPDATE mcp_editor_commands SET result=?,state='complete',updated_at=? WHERE id=? AND session_id=? AND state='pending'").bind(result,now,body.commandId,body.session).run();
+  const done=await config.DB.prepare("UPDATE mcp_editor_commands SET result=?,state='complete',updated_at=? WHERE id=? AND session_id=? AND state='pending' AND created_at>?").bind(result,now,body.commandId,body.session,now-60000).run();
   return response({accepted:(done.meta?.changes||0)>0});
  }
  if(body?.action==='disconnect'&&typeof body.session==='string'){
+  await config.DB.prepare("UPDATE mcp_editor_commands SET state='cancelled',updated_at=? WHERE session_id=? AND state='pending'").bind(now,body.session).run();
   await config.DB.prepare('DELETE FROM mcp_editor_sessions WHERE id=?').bind(body.session).run();
   return response({disconnected:true});
  }
