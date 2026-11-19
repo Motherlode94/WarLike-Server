@@ -28,7 +28,7 @@ const sessionTools=tools.map(tool=>({
  inputSchema:{
   ...tool.inputSchema,
   properties:{...tool.inputSchema.properties,sessionId:sessionSchema},
-  required:[...('required' in tool.inputSchema?tool.inputSchema.required:[]), 'sessionId']
+  required:[...('required' in tool.inputSchema?(tool.inputSchema.required??[]):[]), 'sessionId']
  }
 }));
 const listSessionsTool={name:'warlike_list_sessions',description:'List active authorized Engine sessions and permissions; select one sessionId for subsequent commands.',inputSchema:{type:'object',properties:{},additionalProperties:false}};
