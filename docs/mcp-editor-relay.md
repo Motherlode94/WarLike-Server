@@ -13,6 +13,14 @@ Le serveur d'identité et de données **WarLike Server** est la source centrale 
 
 `GET /api/mcp?session=<uuid>` : heartbeat et prochaine commande en attente. Origine navigateur autorisée : `https://warlike-engine.pages.dev`. La session est active si vue dans les 30 dernières secondes.
 
+## Appairage explicite et isolation par onglet
+- `warlike_list_sessions` renvoie les sessions actives (30 dernières secondes) avec un identifiant opaque.
+- **Chaque commande MCP demande `sessionId`**. Plus aucune commande ne sélectionne automatiquement « le dernier onglet connecté ».
+- Les résultats `warlike_command_result` requièrent **le même `sessionId` et `commandId`**.
+- Le navigateur cesse le heartbeat après déconnexion ; une session expirée est refusée et les commandes âgées de plus de 60 secondes sont marquées expirées.
+- Les commandes en attente sont annulées lorsque l'onglet se déconnecte. Un ID de session n’est pas une permission en soi : la clé client MCP reste obligatoire.
+- **Limite restante** : les secrets applicatifs sont partagés par déploiement, et non encore associés à des utilisateurs WarLike Keys individuellement. Pas d'ouverture multi-utilisateurs sans scope de compte et contrôle de propriété côté serveur.
+
 Les opérations de modification sont interdites sur une connexion `read` et le bridge Engine les interdit aussi pendant Play. Le serveur n'autorise que les opérations explicitement listées. Aucun script à exécuter, shell, DOM arbitraire ni accès aux fichiers du client.
 
 ## Configuration Cloudflare
