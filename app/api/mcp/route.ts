@@ -23,7 +23,7 @@ const tools=[
 type RuntimeEnv={DB?:D1Database;WARLIKE_MCP_TOKEN?:string;WARLIKE_MCP_EDITOR_TOKEN?:string};
 const config=env as unknown as RuntimeEnv;
 const serverOrigin='https://warlike-engine.pages.dev';
-const response=(value:unknown,status=200)=>Response.json(value,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
+const response=(value:unknown,status=200)=>Response.json(value,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Access-Control-Allow-Origin':serverOrigin,'Vary':'Origin'}});
 const error=(id:unknown,code:number,message:string)=>response({jsonrpc:'2.0',id:id??null,error:{code,message}});
 const rpc=(id:unknown,result:unknown)=>response({jsonrpc:'2.0',id,result});
 const resultText=(data:unknown)=>({content:[{type:'text',text:JSON.stringify(data)}]});
@@ -67,6 +67,7 @@ export async function POST(request:Request){
  if(msg.method!=='tools/call')return error(id,-32601,'Method not found');
  const name=msg.params?.name,args=msg.params?.arguments||{};
  if(name==='warlike_command_result'){
+  await ensureSchema(config.DB);
   if(typeof args.commandId!=='string'||!/^[0-9a-f-]{36}$/i.test(args.commandId))return error(id,-32602,'Invalid commandId');
   const command=await config.DB.prepare('SELECT state,result FROM mcp_editor_commands WHERE id=?').bind(args.commandId).first<{state:string;result:string|null}>();
   return rpc(id,resultText(command?{state:command.state,result:command.result?JSON.parse(command.result):null}:{state:'not_found'}));
