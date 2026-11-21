@@ -1,0 +1,2 @@
+CREATE TABLE registration_activations(request_id TEXT PRIMARY KEY REFERENCES registration_requests(id),member_id TEXT NOT NULL UNIQUE REFERENCES members(id),activated_at INTEGER NOT NULL,activated_by TEXT NOT NULL);
+CREATE TRIGGER registration_activation_requires_acceptance BEFORE INSERT ON registration_activations WHEN NOT EXISTS(SELECT 1 FROM registration_requests WHERE id=NEW.request_id AND status='accepted') BEGIN SELECT RAISE(ABORT,'registration not accepted'); END;

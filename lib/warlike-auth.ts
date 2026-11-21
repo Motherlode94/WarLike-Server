@@ -53,7 +53,7 @@ export async function bootstrapOwner(db:D1Database,ownerEmail:string,loginInput:
  const result=await db.prepare('INSERT OR IGNORE INTO warlike_credentials(member_id,login,salt,verifier,iterations,version,updated_at) VALUES(?,?,?,?,?,1,?)').bind(owner.id,name,salt,verifier,ITERATIONS,now).run();
  if(!result.meta.changes)throw new HttpError(409,'Initialisation déjà effectuée ou identifiant indisponible.');
 }
-export async function createMember(db:D1Database,actor:Principal,loginInput:unknown,password:unknown,displayName:unknown,now=Date.now()) {
+export async function createMember(db:D1Database,actor:Principal,loginInput:unknown,password:unknown,displayName:unknown,now=Date.now(),registrationId?:string) {
  if(actor.role!=='owner')throw new HttpError(403,'Seul le propriétaire peut créer les comptes.');
  if(!validPassword(password)||typeof displayName!=='string'||!displayName.trim()||displayName.length>80)throw new HttpError(400,'Nom ou mot de passe invalide.');
  const login=normalizedLogin(loginInput);
@@ -67,6 +67,7 @@ export async function createMember(db:D1Database,actor:Principal,loginInput:unkn
   db.prepare("INSERT INTO hub_memberships(member_id,status,display_name,goal,interests,created_at,updated_at,decided_by,decision_note) VALUES(?,'active',?,'Compte créé par le propriétaire','[\"mail\"]',?,?,?,'Compte standard')").bind(memberId,displayName.trim(),now,now,actor.id),
   db.prepare('INSERT INTO warlike_credentials(member_id,login,salt,verifier,iterations,version,must_change,updated_at) VALUES(?,?,?,?,?,1,1,?)').bind(memberId,login,salt,verifier,ITERATIONS,now),
   db.prepare('INSERT INTO mailboxes(member_id,address,given_name,family_name,salt,verifier,iterations,credential_version,updated_at) VALUES(?,?,?,?,?,?,?,1,?)').bind(memberId,address,displayName.trim(),'WarLike',mailbox.salt,mailbox.verifier,PASSWORD_ITERATIONS,now),
+  ...(registrationId?[db.prepare("INSERT INTO registration_activations(request_id,member_id,activated_at,activated_by) VALUES(?,?,?,?)").bind(registrationId,memberId,now,actor.id)]:[]),
   db.prepare('INSERT INTO audit_events(id,actor_id,action,target_id,detail,created_at) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),actor.id,'warlike.member.create',memberId,'Compte membre créé',now),
  ]);
  return {memberId,address};
