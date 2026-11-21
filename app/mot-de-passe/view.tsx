@@ -32,6 +32,7 @@ export default function ChangePassword(){
     <button type="submit" disabled={busy} style={{display:'block',width:'100%',minHeight:48,padding:'12px 18px',background:'#68e2be',color:'#101b1a',border:0,borderRadius:8,fontWeight:700,fontSize:15,cursor:'pointer'}}>{busy?'Modification…':'Modifier mes identifiants'}</button>
    </form>}
    {message&&<p role="status" style={{display:'block',color:success?'#8ee9c8':'#ffaaa5',lineHeight:1.5,margin:'18px 0'}}>{message}</p>}
+   {!success&&<p><a href="/securite" style={{color:'#8ee9c8'}}>Sécurité et sessions</a></p>}
    <a href={loginUrl} style={{display:'inline-block',color:'#8ee9c8',marginTop:20,textDecoration:'underline'}}>Retour à la connexion WarLike</a>
   </section>
  </main>;
