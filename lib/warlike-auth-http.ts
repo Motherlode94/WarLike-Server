@@ -1,3 +1,4 @@
+import {memberSessionRevocations} from './session-security.ts';
 import {HttpError,readJsonObject,errorResponse} from './security.ts';
 import {login,logout,session,bootstrapOwner,setCredential,changePassword,mustChange,createMember,bootstrapTeam,checkKdf} from './warlike-auth.ts';
 import {digest,rateLimit} from './security-store.ts';
@@ -35,6 +36,17 @@ export async function authHttp(request:Request,db:D1Database,clientId:string,set
    return response({sessions:result.results.map(x=>({createdAt:x.created_at,expiresAt:x.expires_at,current:x.current===1})),limit:100});
   }
 
+  if(path==='/api/warlike-auth/logout-all'){
+   const user=await session(db,tokenFrom(request));
+   if(!user)throw new HttpError(401,'Connexion requise.');
+   await rateLimit(db,user.id,'auth-logout-all',5,900);
+   const data=await readJsonObject(request,1024);
+   if(data.confirm!==true)throw new HttpError(400,'Confirmation requise.');
+   const statements=await memberSessionRevocations(db,user.id);
+   statements.push(db.prepare('INSERT INTO audit_events(id,actor_id,action,target_id,detail,created_at) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),user.id,'security.sessions.selfRevoke',user.id,'Déconnexion globale personnelle',Date.now()));
+   await db.batch(statements);
+   return response({ok:true},200,`${COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax`);
+  }
   if(path==='/api/warlike-auth/logout'){
    await logout(db,tokenFrom(request));
    return response({ok:true},200,`${COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax`);
