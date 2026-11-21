@@ -1,0 +1,1 @@
+CREATE TABLE warlike_session_devices(token_hash TEXT PRIMARY KEY REFERENCES warlike_sessions(token_hash) ON DELETE CASCADE,browser TEXT NOT NULL,os TEXT NOT NULL,device TEXT NOT NULL CHECK(device IN ('desktop','mobile','tablet','unknown')));
