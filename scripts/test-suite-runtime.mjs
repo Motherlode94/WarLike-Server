@@ -33,7 +33,8 @@ async function application(context,app){
  // The production app origins target an isolated loopback Worker in CI. Grant
  // Chromium's explicit local-network permission, while keeping CORS enforced.
  await context.grantPermissions(['local-network-access'],{origin:apps[app]});
- const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));page.on('requestfailed',r=>console.error('Browser request failed',new URL(r.url()).pathname,r.failure()?.errorText));
+ const page=await context.newPage();
+ const cdp=await context.newCDPSession(page);await cdp.send('Network.enable');cdp.on('Network.loadingFailed',e=>console.error('Browser network diagnostic',JSON.stringify({errorText:e.errorText,blockedReason:e.blockedReason,corsErrorStatus:e.corsErrorStatus})));page.on('response',async r=>{if(new URL(r.url()).pathname.endsWith('/members'))console.log('Membership HTTP',r.request().method(),r.status(),(await r.allHeaders())['access-control-allow-origin']);});page.on('pageerror',e=>errors.push(e.message));page.on('requestfailed',r=>console.error('Browser request failed',new URL(r.url()).pathname,r.failure()?.errorText));
  await page.route(apps[app]+'/**',async route=>{
   const url=new URL(route.request().url());
   if(url.pathname==='/client.mjs')return route.fulfill({contentType:'text/javascript',body:clientSource});
@@ -69,6 +70,10 @@ try{
  const membersUrl=server+'/api/business/organizations/'+company.id+'/members';
  const preflight=await api.fetch(membersUrl,{method:'OPTIONS',headers:{Origin:apps.business,'Access-Control-Request-Method':'POST','Access-Control-Request-Headers':'authorization,content-type'}});
  console.log('DIAGNOSTIC Business membership preflight',JSON.stringify({status:preflight.status(),allowOrigin:preflight.headers()['access-control-allow-origin']||null,allowMethods:preflight.headers()['access-control-allow-methods']||null,allowHeaders:preflight.headers()['access-control-allow-headers']||null,body:(await preflight.text()).slice(0,400)}));
+ // Reassert the loopback permission after cross-origin consent navigations.
+ await context.grantPermissions(['local-network-access'],{origin:apps.business});
+ await bob.grantPermissions(['local-network-access'],{origin:apps.business});
+ await business.bringToFront();
  await business.evaluate(org=>client.request('/organizations/'+org+'/members',{method:'POST',body:{memberId:'WL-TEST-BOB',role:'viewer',expectedRevision:0}}),company.id);
  assert.equal((await bobBusiness.evaluate(org=>client.request('/organizations/'+org+'/drafts'),company.id)).drafts.length,1);
  assert.equal(await bobBusiness.evaluate(async org=>{try{await client.request('/organizations/'+org+'/drafts',{method:'POST',body:{title:'Forbidden',payload:{}}})}catch(e){return e.status}},company.id),403);

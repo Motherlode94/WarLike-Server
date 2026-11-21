@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS registration_requests (id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, created_at INTEGER NOT NULL);

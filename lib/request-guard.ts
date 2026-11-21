@@ -64,7 +64,7 @@ export async function guardRequest(request: Request, env: { DB?: D1Database; WAR
     if(!env.DB)throw Error('Database unavailable');
     return authHttp(request,env.DB,request.headers.get('cf-connecting-ip')||'unknown-client',{secret:env.WARLIKE_BOOTSTRAP_SECRET,ownerEmail:env.WARLIKE_OWNER_EMAIL});
   }
-  if(enabled&&['/connexion','/configuration'].includes(url.pathname))return withWarLikeAnonymous(()=>run(request));
+  if(enabled&&['/connexion','/configuration','/demande-compte'].includes(url.pathname))return withWarLikeAnonymous(()=>run(request));
   const signed = request.headers.has('x-warlike-identity') || request.headers.has('x-warlike-signature');
   if(enabled&&signed)throw new HttpError(403,'Ancienne connexion désactivée.');
   if (signed && url.pathname !== '/api/mail') throw new HttpError(403, 'Cette interface exige une connexion directe.');
