@@ -79,10 +79,11 @@ async function dataHttp(db:D1Database,app:SuiteApp,user:AppPrincipal,request:Req
    if(method==='POST'){const input=await readJsonObject(request,2048);return json(await createOrganization(db,user,input.name),201)}
    throw new HttpError(405,'Méthode non autorisée.');
   }
-  const match=path.match(/^\/api\/business\/organizations\/([^/]+)\/(drafts(?:\/[^/]+)?|members)$/);
+  const match=path.match(/^\/api\/business\/organizations\/([^/]+)\/(drafts(?:\/[^/]+)?|members(?:\/revoke)?)$/);
   if(!match)throw new HttpError(404,'Route introuvable.');
   scope=await organizationScope(db,user,match[1],write);resourcePath=match[2];
-  if(resourcePath==='members'){
+  if(resourcePath==='members'||resourcePath==='members/revoke'){
+   if(resourcePath==='members/revoke'){if(method!=='POST')throw new HttpError(405,'Méthode non autorisée.');const input=await readJsonObject(request,4096);return json(await setOrganizationMember(db,user,match[1],input,Date.now(),true));}
    if(method==='GET')return json({members:await organizationMembers(db,user,match[1])});
    if(method==='POST'||method==='DELETE'){const input=await readJsonObject(request,4096);return json(await setOrganizationMember(db,user,match[1],input,Date.now(),method==='DELETE'))}
    throw new HttpError(405,'Méthode non autorisée.');
