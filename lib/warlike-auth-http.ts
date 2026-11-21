@@ -68,10 +68,20 @@ export async function authHttp(request:Request,db:D1Database,clientId:string,set
    await db.prepare("INSERT OR IGNORE INTO registration_requests(id,name,email,created_at) VALUES(?,?,?,?)").bind(crypto.randomUUID(),d.name.trim(),d.email.trim().toLowerCase(),Date.now()).run();
    return response({ok:true},202);
   }
+  if(path==='/api/warlike-auth/registration-decision'){
+   const actor=await session(db,tokenFrom(request));
+   if(!actor||actor.role!=='owner'||await mustChange(db,actor.id))throw new HttpError(403,'Espace réservé au propriétaire.');
+   await rateLimit(db,actor.id,'registration-decision',30,900);
+   const d=await readJsonObject(request,2048);
+   if(typeof d.id!=='string'||!/^[0-9a-f-]{36}$/.test(d.id)||(d.decision!=='accepted'&&d.decision!=='refused'))throw new HttpError(400,'Décision invalide.');
+   const result=await db.prepare("UPDATE registration_requests SET status=?,decided_at=?,decided_by=? WHERE id=? AND status='pending'").bind(d.decision,Date.now(),actor.id,d.id).run();
+   if(result.meta.changes!==1)throw new HttpError(409,'Demande absente ou déjà traitée.');
+   return response({ok:true,status:d.decision});
+  }
   if(path==='/api/warlike-auth/registration-list'){
    const actor=await session(db,tokenFrom(request));
    if(!actor||actor.role!=='owner'||await mustChange(db,actor.id))throw new HttpError(403,'Espace réservé au propriétaire.');
-   const rows=await db.prepare("SELECT id,name,email,created_at FROM registration_requests ORDER BY created_at DESC LIMIT 100").all();
+   const rows=await db.prepare("SELECT id,name,email,created_at,status,decided_at,decided_by FROM registration_requests ORDER BY (status='pending') DESC,created_at DESC LIMIT 100").all();
    return response({requests:rows.results});
   }
   if(path==='/api/warlike-auth/password'){
