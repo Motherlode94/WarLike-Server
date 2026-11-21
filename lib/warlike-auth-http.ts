@@ -91,7 +91,7 @@ export async function authHttp(request:Request,db:D1Database,clientId:string,set
   if(path==='/api/warlike-auth/registration-list'){
    const actor=await session(db,tokenFrom(request));
    if(!actor||actor.role!=='owner'||await mustChange(db,actor.id))throw new HttpError(403,'Espace réservé au propriétaire.');
-   const rows=await db.prepare("SELECT id,name,email,created_at,status,decided_at,decided_by FROM registration_requests ORDER BY (status='pending') DESC,created_at DESC LIMIT 100").all();
+   const rows=await db.prepare("SELECT r.id,r.name,r.email,r.created_at,CASE WHEN a.member_id IS NOT NULL THEN 'activated' ELSE r.status END AS status,r.decided_at,r.decided_by,a.member_id,a.activated_at,CASE WHEN a.member_id IS NOT NULL THEN COALESCE(c.status,'active') ELSE NULL END AS account_status FROM registration_requests r LEFT JOIN registration_activations a ON a.request_id=r.id LEFT JOIN member_controls c ON c.member_id=a.member_id ORDER BY (r.status='pending') DESC,r.created_at DESC LIMIT 100").all();
    return response({requests:rows.results});
   }
   if(path==='/api/warlike-auth/password'){
