@@ -25,6 +25,16 @@ export async function authHttp(request:Request,db:D1Database,clientId:string,set
   if(path==='/api/warlike-auth/session'&&request.method==='GET'){await rateLimit(db,clientId,'auth-session-read',120);const user=await session(db,tokenFrom(request));return response({user,mustChange:user?await mustChange(db,user.id):false});}
   if(request.method!=='POST')throw new HttpError(405,'Méthode non autorisée.');
   ensureOrigin(request);
+  if(path==='/api/warlike-auth/sessions'&&request.method==='POST'){
+   const token=tokenFrom(request),user=await session(db,token);
+   if(!user||!token)throw new HttpError(401,'Connexion requise.');
+   if(await mustChange(db,user.id))throw new HttpError(403,'Modifiez votre mot de passe temporaire.');
+   await rateLimit(db,user.id,'auth-sessions-list',30,60);
+   const now=Date.now(),hash=await digest(token);
+   const result=await db.prepare("SELECT s.created_at,s.expires_at,CASE WHEN s.token_hash=? THEN 1 ELSE 0 END AS current FROM warlike_sessions s JOIN warlike_credentials c ON c.member_id=s.member_id AND c.version=s.credential_version WHERE s.member_id=? AND s.expires_at>? ORDER BY current DESC,s.created_at DESC LIMIT 100").bind(hash,user.id,now).all();
+   return response({sessions:result.results.map(x=>({createdAt:x.created_at,expiresAt:x.expires_at,current:x.current===1})),limit:100});
+  }
+
   if(path==='/api/warlike-auth/logout'){
    await logout(db,tokenFrom(request));
    return response({ok:true},200,`${COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax`);
