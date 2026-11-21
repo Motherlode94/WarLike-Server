@@ -26,6 +26,15 @@ export async function authHttp(request:Request,db:D1Database,clientId:string,set
   if(path==='/api/warlike-auth/session'&&request.method==='GET'){await rateLimit(db,clientId,'auth-session-read',120);const user=await session(db,tokenFrom(request));return response({user,mustChange:user?await mustChange(db,user.id):false});}
   if(request.method!=='POST')throw new HttpError(405,'Méthode non autorisée.');
   ensureOrigin(request);
+  if(path==='/api/warlike-auth/admin-sessions'){
+   const actor=await session(db,tokenFrom(request));
+   if(!actor||actor.role!=='owner'||await mustChange(db,actor.id))throw new HttpError(403,'Espace réservé au propriétaire.');
+   await rateLimit(db,actor.id,'admin-sessions-list',30,60);
+   const data=await readJsonObject(request,1024);
+   if(typeof data.memberId!=='string'||!data.memberId||data.memberId.length>100)throw new HttpError(400,'Identifiant invalide.');
+   const rows=await db.prepare("SELECT s.created_at,s.expires_at FROM warlike_sessions s JOIN warlike_credentials c ON c.member_id=s.member_id AND c.version=s.credential_version JOIN members m ON m.id=s.member_id WHERE s.member_id=? AND m.role!='owner' AND s.expires_at>? ORDER BY s.created_at DESC LIMIT 100").bind(data.memberId,Date.now()).all();
+   return response({sessions:rows.results.map(x=>({createdAt:x.created_at,expiresAt:x.expires_at})),limit:100});
+  }
   if(path==='/api/warlike-auth/sessions'&&request.method==='POST'){
    const token=tokenFrom(request),user=await session(db,token);
    if(!user||!token)throw new HttpError(401,'Connexion requise.');
