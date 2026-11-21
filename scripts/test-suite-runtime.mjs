@@ -33,7 +33,8 @@ async function application(context,app){
  // The production app origins target an isolated loopback Worker in CI. Grant
  // Chromium's explicit local-network permission, while keeping CORS enforced.
  await context.grantPermissions(['local-network-access'],{origin:apps[app]});
- const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));page.on('requestfailed',r=>console.error('Browser request failed',new URL(r.url()).pathname,r.failure()?.errorText));
+ const page=await context.newPage();
+ const cdp=await context.newCDPSession(page);await cdp.send('Network.enable');cdp.on('Network.loadingFailed',e=>console.error('Browser network diagnostic',JSON.stringify({errorText:e.errorText,blockedReason:e.blockedReason,corsErrorStatus:e.corsErrorStatus})));page.on('response',async r=>{if(new URL(r.url()).pathname.endsWith('/members'))console.log('Membership HTTP',r.request().method(),r.status(),(await r.allHeaders())['access-control-allow-origin']);});page.on('pageerror',e=>errors.push(e.message));page.on('requestfailed',r=>console.error('Browser request failed',new URL(r.url()).pathname,r.failure()?.errorText));
  await page.route(apps[app]+'/**',async route=>{
   const url=new URL(route.request().url());
   if(url.pathname==='/client.mjs')return route.fulfill({contentType:'text/javascript',body:clientSource});
