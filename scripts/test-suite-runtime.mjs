@@ -77,7 +77,7 @@ try{
  await business.evaluate(org=>client.request('/organizations/'+org+'/members',{method:'POST',body:{memberId:'WL-TEST-BOB',role:'viewer',expectedRevision:0}}),company.id);
  assert.equal((await bobBusiness.evaluate(org=>client.request('/organizations/'+org+'/drafts'),company.id)).drafts.length,1);
  assert.equal(await bobBusiness.evaluate(async org=>{try{await client.request('/organizations/'+org+'/drafts',{method:'POST',body:{title:'Forbidden',payload:{}}})}catch(e){return e.status}},company.id),403);
- await business.evaluate(org=>client.request('/organizations/'+org+'/members',{method:'DELETE',body:{memberId:'WL-TEST-BOB',expectedRevision:1}}),company.id);
+ await business.evaluate(org=>client.request('/organizations/'+org+'/members/revoke',{method:'POST',body:{memberId:'WL-TEST-BOB',expectedRevision:1}}),company.id);
  assert.equal(await bobBusiness.evaluate(async org=>{try{await client.request('/organizations/'+org+'/drafts')}catch(e){return e.status}},company.id),404);passed('Business viewer is read-only and member removal immediately blocks access');
  // A different native account cannot read a personal draft without an application session.
  const noBearer=await api.get(server+'/api/academy/drafts/'+draft.id,{headers:{'oai-authenticated-user-id':'WL-TEST-OWNER','oai-authenticated-user-email':'owner@example.test'}});assert.equal(noBearer.status(),401);

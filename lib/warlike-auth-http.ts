@@ -68,6 +68,16 @@ export async function authHttp(request:Request,db:D1Database,clientId:string,set
    await db.prepare("INSERT OR IGNORE INTO registration_requests(id,name,email,created_at) VALUES(?,?,?,?)").bind(crypto.randomUUID(),d.name.trim(),d.email.trim().toLowerCase(),Date.now()).run();
    return response({ok:true},202);
   }
+  if(path==='/api/warlike-auth/registration-activate'){
+   const actor=await session(db,tokenFrom(request));
+   if(!actor||actor.role!=='owner'||await mustChange(db,actor.id))throw new HttpError(403,'Espace réservé au propriétaire.');
+   await rateLimit(db,actor.id,'auth-account-management',10,900);
+   const d=await readJsonObject(request,2048);
+   if(typeof d.id!=='string'||!/^[0-9a-f-]{36}$/.test(d.id))throw new HttpError(400,'Demande invalide.');
+   const row=await db.prepare("SELECT r.name FROM registration_requests r WHERE r.id=? AND r.status='accepted' AND NOT EXISTS(SELECT 1 FROM registration_activations a WHERE a.request_id=r.id)").bind(d.id).first<{name:string}>();
+   if(!row)throw new HttpError(409,'Demande non acceptée ou déjà activée.');
+   return response(await createMember(db,actor,d.login,d.password,row.name,Date.now(),d.id),201);
+  }
   if(path==='/api/warlike-auth/registration-decision'){
    const actor=await session(db,tokenFrom(request));
    if(!actor||actor.role!=='owner'||await mustChange(db,actor.id))throw new HttpError(403,'Espace réservé au propriétaire.');
