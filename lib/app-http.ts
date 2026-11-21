@@ -61,15 +61,17 @@ export async function applicationHttp(request:Request,env:AppEnvironment):Promis
    }
   }
  }catch(error){response=errorResponse(error)}
- // Bearer-only CORS, never credentialed cross-origin cookies. Errors are readable
- // by the exact legitimate app too, including 401 after suspension/revocation.
- if(app&&origin===suiteApplications[app].origin&&url.pathname!==`/api/${app}/authorize`){
-  const headers=new Headers(response.headers);headers.set('Access-Control-Allow-Origin',origin);headers.set('Vary','Origin');
-  headers.set('Access-Control-Allow-Methods','GET, POST, PUT, DELETE, OPTIONS');headers.set('Access-Control-Allow-Headers','Authorization, Content-Type');
-  response=new Response(response.body,{status:response.status,headers});
- }
- return response;
+ return suiteCors(request,response);
 }
+// Apply the same exact-origin policy to errors escaping the application router.
+export function suiteCors(request:Request,response:Response):Response{
+ const url=new URL(request.url),part=url.pathname.split('/')[2],app=isSuiteApp(part)?part:null,origin=request.headers.get('origin');
+ if(!isAppEndpoint(url.pathname)||!app||origin!==suiteApplications[app].origin||url.pathname===`/api/${app}/authorize`)return response;
+ const headers=new Headers(response.headers);headers.set('Access-Control-Allow-Origin',origin);const vary=new Set((headers.get('Vary')||'').split(',').map(x=>x.trim()).filter(Boolean));vary.add('Origin');headers.set('Vary',[...vary].join(', '));
+ headers.set('Access-Control-Allow-Methods','GET, POST, PUT, DELETE, OPTIONS');headers.set('Access-Control-Allow-Headers','Authorization, Content-Type');
+ return new Response(response.body,{status:response.status,headers});
+}
+
 async function dataHttp(db:D1Database,app:SuiteApp,user:AppPrincipal,request:Request){
  const path=new URL(request.url).pathname,method=request.method,write=!['GET','HEAD'].includes(method);
  let scope:DraftScope,resourcePath:string;

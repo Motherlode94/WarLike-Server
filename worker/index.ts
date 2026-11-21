@@ -1,3 +1,4 @@
+import { suiteCors } from "../lib/app-http";
 import { guardRequest } from "../lib/request-guard";
 import { secureResponse, errorResponse } from "../lib/security";
 import handler from "vinext/server/fetch-handler";
@@ -28,7 +29,7 @@ const worker = {
     try {
       const response = await guardRequest(request, env, safe => runWithConnectorBinding(binding, () => handler.fetch(safe, env, ctx)), import.meta.env.DEV);
       return secureResponse(response, request, import.meta.env.DEV);
-    } catch (error) { return secureResponse(errorResponse(error), request, import.meta.env.DEV); }
+    } catch (error) { return secureResponse(suiteCors(request,errorResponse(error)), request, import.meta.env.DEV); }
   },
 };
 
