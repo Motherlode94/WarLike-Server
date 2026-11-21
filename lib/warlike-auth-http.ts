@@ -61,6 +61,19 @@ export async function authHttp(request:Request,db:D1Database,clientId:string,set
    const data=await readJsonObject(request,2048);
    return response(await createMember(db,actor,data.login,data.password,data.displayName),201);
   }
+  if(path==='/api/warlike-auth/registration-request'){
+   await rateLimit(db,clientId,'registration-request',3,3600);
+   const d=await readJsonObject(request,2048);
+   if(typeof d.name!=='string'||!d.name.trim()||d.name.length>80||typeof d.email!=='string'||d.email.length>254||!/^\S+@[^\s@]+\.[^\s@]+$/.test(d.email.trim()))throw new HttpError(400,'Nom ou adresse invalide.');
+   await db.prepare("INSERT OR IGNORE INTO registration_requests(id,name,email,created_at) VALUES(?,?,?,?)").bind(crypto.randomUUID(),d.name.trim(),d.email.trim().toLowerCase(),Date.now()).run();
+   return response({ok:true},202);
+  }
+  if(path==='/api/warlike-auth/registration-list'){
+   const actor=await session(db,tokenFrom(request));
+   if(!actor||actor.role!=='owner'||await mustChange(db,actor.id))throw new HttpError(403,'Espace réservé au propriétaire.');
+   const rows=await db.prepare("SELECT id,name,email,created_at FROM registration_requests ORDER BY created_at DESC LIMIT 100").all();
+   return response({requests:rows.results});
+  }
   if(path==='/api/warlike-auth/password'){
    const data=await readJsonObject(request,2048);
    await changePassword(db,tokenFrom(request),data.currentPassword,data.newPassword,data.newLogin);
