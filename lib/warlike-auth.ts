@@ -93,7 +93,11 @@ export async function bootstrapTeam(db:D1Database,ownerEmail:string,admin:{login
  }
  await db.batch(statements);
 }
-export async function login(db:D1Database,loginInput:unknown,password:unknown,clientId:string,now=Date.now()) {
+export function describeDevice(agent:string){
+ const ua=agent.slice(0,512);
+ return {browser:/Edg(?:A|iOS)?\//i.test(ua)?'Edge':/OPR\//i.test(ua)?'Opera':/Firefox\/|FxiOS\//i.test(ua)?'Firefox':/Chrome\/|CriOS\//i.test(ua)?'Chrome':/Safari\//i.test(ua)?'Safari':'Unknown',os:/iPhone|iPad|iPod/i.test(ua)?'iOS':/Android/i.test(ua)?'Android':/Windows/i.test(ua)?'Windows':/Macintosh/i.test(ua)?'macOS':/Linux/i.test(ua)?'Linux':'Unknown',device:/iPad|Tablet/i.test(ua)||/Android/i.test(ua)&&!/Mobile/i.test(ua)?'tablet':/Mobile|iPhone|iPod/i.test(ua)?'mobile':/Windows|Macintosh|Linux/i.test(ua)?'desktop':'unknown'};
+}
+export async function login(db:D1Database,loginInput:unknown,password:unknown,clientId:string,now=Date.now(),agent='') {
   let loginName:string;try{loginName=normalizedLogin(loginInput)}catch{loginName='invalid-login'}
   await rateLimit(db,clientId,'warlike-login-client',25,900,now);
   await rateLimit(db,loginName,'warlike-login-account',5,900,now);
@@ -104,7 +108,9 @@ export async function login(db:D1Database,loginInput:unknown,password:unknown,cl
   const expected=row?unb64(row.verifier):new Uint8Array(32);
   if(!row||!equal(actual,expected)||row.status!=='active')throw new HttpError(401,'Identifiant ou mot de passe incorrect.');
   const token=b64(random(32)).replaceAll('+','-').replaceAll('/','_').replaceAll('=','');
-  await db.prepare('INSERT INTO warlike_sessions(token_hash,member_id,credential_version,expires_at,created_at) VALUES(?,?,?,?,?)').bind(await digest(token),row.member_id,row.version,now+TTL,now).run();
+  const device=describeDevice(agent);
+  const hash=await digest(token);
+  await db.batch([db.prepare('INSERT INTO warlike_sessions(token_hash,member_id,credential_version,expires_at,created_at) VALUES(?,?,?,?,?)').bind(hash,row.member_id,row.version,now+TTL,now),db.prepare('INSERT INTO warlike_session_devices(token_hash,browser,os,device) VALUES(?,?,?,?)').bind(hash,device.browser,device.os,device.device)]);
   return {token,expiresAt:now+TTL,mustChange:row.must_change===1};
 }
 export async function mustChange(db:D1Database,memberId:string):Promise<boolean> {

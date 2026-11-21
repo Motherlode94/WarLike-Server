@@ -32,8 +32,8 @@ export async function authHttp(request:Request,db:D1Database,clientId:string,set
    if(await mustChange(db,user.id))throw new HttpError(403,'Modifiez votre mot de passe temporaire.');
    await rateLimit(db,user.id,'auth-sessions-list',30,60);
    const now=Date.now(),hash=await digest(token);
-   const result=await db.prepare("SELECT s.created_at,s.expires_at,CASE WHEN s.token_hash=? THEN 1 ELSE 0 END AS current FROM warlike_sessions s JOIN warlike_credentials c ON c.member_id=s.member_id AND c.version=s.credential_version WHERE s.member_id=? AND s.expires_at>? ORDER BY current DESC,s.created_at DESC LIMIT 100").bind(hash,user.id,now).all();
-   return response({sessions:result.results.map(x=>({createdAt:x.created_at,expiresAt:x.expires_at,current:x.current===1})),limit:100});
+   const result=await db.prepare("SELECT s.created_at,s.expires_at,d.browser,d.os,d.device,CASE WHEN s.token_hash=? THEN 1 ELSE 0 END AS current FROM warlike_sessions s JOIN warlike_credentials c ON c.member_id=s.member_id AND c.version=s.credential_version LEFT JOIN warlike_session_devices d ON d.token_hash=s.token_hash WHERE s.member_id=? AND s.expires_at>? ORDER BY current DESC,s.created_at DESC LIMIT 100").bind(hash,user.id,now).all();
+   return response({sessions:result.results.map(x=>({createdAt:x.created_at,expiresAt:x.expires_at,current:x.current===1,browser:x.browser??'Unknown',os:x.os??'Unknown',device:x.device??'unknown'})),limit:100});
   }
 
   if(path==='/api/warlike-auth/logout-all'){
@@ -123,7 +123,7 @@ export async function authHttp(request:Request,db:D1Database,clientId:string,set
   }
   if(path!=='/api/warlike-auth/login')throw new HttpError(404,'Route introuvable.');
   const data=await readJsonObject(request,2048);
-  const result=await login(db,data.login,data.password,clientId);
+  const result=await login(db,data.login,data.password,clientId,Date.now(),request.headers.get('user-agent')||'');
   return response({ok:true,mustChange:result.mustChange},200,`${COOKIE}=${result.token}; Path=/; Max-Age=${MAX_AGE}; HttpOnly; Secure; SameSite=Lax`);
  }catch(e){return errorResponse(e);}
 }
