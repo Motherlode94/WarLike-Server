@@ -2,7 +2,11 @@ import { WorkerEntrypoint } from "cloudflare:workers";
 import { isPushSessionActive } from "../lib/push-session-verifier";
 export class PushSessionVerifier extends WorkerEntrypoint<Cloudflare.Env> {
   async isSessionActive(hash: string, memberId: string): Promise<boolean> {
-    try { return await isPushSessionActive(this.env.DB, hash, memberId); }
+    try {
+      const db = this.env.DB;
+      if (!db) return false;
+      return await isPushSessionActive(db, hash, memberId);
+    }
     catch { return false; }
   }
 }
