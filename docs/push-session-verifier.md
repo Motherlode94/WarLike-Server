@@ -1,0 +1,2 @@
+# Internal Push session verifier
+The helper checks account ownership, expiration, credential version, suspension and temporary password status against authoritative Server D1. It never returns identity or token data. Do not mount as a public HTTP endpoint. A private service entrypoint with a restricted binding must be added before Networks can invoke this helper. Delivery remains disabled until integration and end-to-end revocation tests pass.
