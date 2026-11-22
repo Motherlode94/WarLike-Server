@@ -1,2 +1,2 @@
-# Internal Push session verifier
-The helper checks account ownership, expiration, credential version, suspension and temporary password status against authoritative Server D1. It never returns identity or token data. Do not mount as a public HTTP endpoint. A private service entrypoint with a restricted binding must be added before Networks can invoke this helper. Delivery remains disabled until integration and end-to-end revocation tests pass.
+# Private Push session verifier
+Named Worker RPC entrypoint PushSessionVerifier on warlike-server-runtime. Bind Networks service as PUSH_SESSION_VERIFIER with entrypoint PushSessionVerifier. Call isSessionActive(sessionHash, memberId); returns boolean and fails closed on errors. No HTTP route; default fetch unchanged. Hash matches SHA-256 lowercase hex in security-store.ts. Restrict service binding to trusted runtime. Deploy and verify RPC before enabling delivery. Session changes can race in-flight delivery.
