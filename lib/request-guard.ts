@@ -20,6 +20,13 @@ export async function guardRequest(request: Request, env: { DB?: D1Database; WAR
   if (url.pathname === '/api/health' && request.method === 'GET') {
     return withRequestIdentity(null, null, () => run(request));
   }
+  // Public creations expose only explicitly published metadata, never private project bytes.
+  // Restrict the bypass to GET and apply an IP-scoped rate limit before dispatch.
+  if(url.pathname==='/api/creations'&&request.method==='GET'){
+    if(!env.DB)throw new HttpError(503,'Base de données indisponible.');
+    await rateLimit(env.DB,request.headers.get('cf-connecting-ip')||'unknown-client','public-creations-read',60,60);
+    return withWarLikeAnonymous(()=>run(request));
+  }
   // Pairing code redemption is intentionally public to the Heart backend:
   // a valid one-time PKCE verifier is the credential, never the user's cookie.
   // The endpoint itself validates and atomically consumes the code.
