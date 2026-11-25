@@ -29,3 +29,26 @@ CREATE TABLE IF NOT EXISTS warlike_publications (
 CREATE INDEX IF NOT EXISTS warlike_publications_owner ON warlike_publications(owner_id,updated_at DESC);
 --> statement-breakpoint
 CREATE INDEX IF NOT EXISTS warlike_publications_public ON warlike_publications(status,updated_at DESC);
+
+--> statement-breakpoint
+-- Separate PKCE codes and revocable Engine access sessions: Studio tokens are not valid here.
+CREATE TABLE IF NOT EXISTS engine_pair_codes (
+ code_hash TEXT PRIMARY KEY NOT NULL,
+ member_id TEXT NOT NULL REFERENCES members(id),
+ challenge TEXT NOT NULL,
+ expires_at INTEGER NOT NULL,
+ created_at INTEGER NOT NULL,
+ used_at INTEGER
+);
+--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS engine_pair_codes_expiry ON engine_pair_codes(expires_at);
+--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS engine_access_sessions (
+ token_hash TEXT PRIMARY KEY NOT NULL,
+ member_id TEXT NOT NULL REFERENCES members(id),
+ expires_at INTEGER NOT NULL,
+ created_at INTEGER NOT NULL,
+ revoked_at INTEGER
+);
+--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS engine_access_sessions_member ON engine_access_sessions(member_id);
