@@ -1,6 +1,6 @@
 import {sha256,validChallenge} from './heart-pairing.ts';
 import type {Principal} from './policy.ts';
-const encode=(bytes:Uint8Array)=>btoa(Array.from(bytes,b=>String.fromChar(b)).join('')).replaceAll('+','-').replaceAll('/','_').replaceAll('=','');
+const encode=(bytes:Uint8Array)=>btoa(Array.from(bytes,b=>String.fromCharCode(b)).join('')).replaceAll('+','-').replaceAll('/','_').replaceAll('=','');
 const random=()=>encode(crypto.getRandomValues(new Uint8Array(32)));
 export const ENGINE_ORIGIN='https://warlike-engine.pages.dev';
 export const ENGINE_CODE_TTL=120000,ENGINE_TOKEN_TTL=8*3600000;
