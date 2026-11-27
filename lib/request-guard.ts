@@ -8,6 +8,7 @@ import { HttpError, readLimitedBytes } from './security.ts';
 import {authHttp,tokenFrom} from './warlike-auth-http.ts';
 import {session,mustChange} from './warlike-auth.ts';
 import {studioPrincipal, revokeStudioToken} from './studio-pairing.ts';
+import {enginePrincipal} from './engine-pairing.ts';
 const ORIGIN = 'https://warlike-server.vikktor7.chatgpt.site';
 
 export async function guardRequest(request: Request, env: { DB?: D1Database; WARLIKE_BRIDGE_KEY?: string; WARLIKE_OWNER_EMAIL?: string; WARLIKE_AUTH_ENABLED?: string; WARLIKE_BOOTSTRAP_SECRET?: string }, run: (request: Request) => Response | Promise<Response>, development=false): Promise<Response> {
@@ -19,6 +20,13 @@ export async function guardRequest(request: Request, env: { DB?: D1Database; WAR
   // Only the operational health endpoint is public. Never expose private mailbox data here.
   if (url.pathname === '/api/health' && request.method === 'GET') {
     return withRequestIdentity(null, null, () => run(request));
+  }
+  // Public creations expose only explicitly published metadata, never private project bytes.
+  // Restrict the bypass to GET and apply an IP-scoped rate limit before dispatch.
+  if(url.pathname==='/api/creations'&&request.method==='GET'){
+    if(!env.DB)throw new HttpError(503,'Base de données indisponible.');
+    await rateLimit(env.DB,request.headers.get('cf-connecting-ip')||'unknown-client','public-creations-read',60,60);
+    return withWarLikeAnonymous(()=>run(request));
   }
   // Pairing code redemption is intentionally public to the Heart backend:
   // a valid one-time PKCE verifier is the credential, never the user's cookie.
@@ -58,6 +66,31 @@ export async function guardRequest(request: Request, env: { DB?: D1Database; WAR
       return withWarLikeIdentity(principal,()=>run(request));
     }
   }
+  // Independent Engine scope: only a verified revocable Engine token can access its API.
+  if(url.pathname.startsWith('/api/engine/')&&url.pathname!=='/api/engine/authorize'&&url.pathname!=='/api/engine/exchange'){
+    const bearer=request.headers.get('authorization')?.match(/^Bearer ([A-Za-z0-9_-]{43})$/)?.[1];
+    if(bearer){
+      if(!env.DB)throw new HttpError(503,'Base de données indisponible.');
+      const principal=await enginePrincipal(env.DB,bearer);
+      if(!principal)throw new HttpError(401,'Session Engine invalide.');
+      await authorizePrincipal(env.DB,principal,url);
+      await limitApiRequest(env.DB,principal.id,request);
+      if(!['GET','HEAD','POST','PUT','DELETE'].includes(request.method))throw new HttpError(405,'Méthode non autorisée.');
+      if(['POST','PUT','DELETE'].includes(request.method)){
+        if(request.headers.get('content-type')?.split(';')[0].trim().toLowerCase()!=='application/json')throw new HttpError(415,'JSON requis.');
+        request=new Request(request,{body:await readLimitedBytes(request,1024*1024+8192)});
+      }
+      await rateLimit(env.DB,principal.id,'engine:'+requestRateScope(request.method,url.pathname),60);
+      return withWarLikeIdentity(principal,()=>run(request));
+    }
+  }
+  if(url.pathname==='/api/engine/exchange'){
+    if(request.method!=='POST'||!env.DB)throw new HttpError(503,'Échange Engine indisponible.');
+    if(request.headers.get('content-type')?.split(';')[0].trim().toLowerCase()!=='application/json')throw new HttpError(415,'JSON requis.');
+    const bytes=await readLimitedBytes(request,2048);
+    await rateLimit(env.DB,request.headers.get('cf-connecting-ip')||'unknown-client','engine-code-exchange',20,900);
+    return withWarLikeAnonymous(()=>run(new Request(request,{body:bytes})));
+  }
   const enabled=env.WARLIKE_AUTH_ENABLED==='true';
   if(enabled&&!env.DB)throw Error('Database unavailable');
   if(enabled&&url.pathname.startsWith('/api/warlike-auth/')){
@@ -77,13 +110,13 @@ export async function guardRequest(request: Request, env: { DB?: D1Database; WAR
         if(api)throw new HttpError(403,'Modifie tes identifiants temporaires avant de continuer.');
         return new Response(null,{status:303,headers:{Location:'/mot-de-passe','Cache-Control':'no-store'}});
       }
-      if(!['GET','HEAD','POST'].includes(request.method)&&!(url.pathname.startsWith('/api/studio/projects/')&&['PUT','DELETE'].includes(request.method)))throw new HttpError(405,'Méthode non autorisée.');
+      if(!['GET','HEAD','POST'].includes(request.method)&&!((url.pathname.startsWith('/api/studio/projects/')||url.pathname.startsWith('/api/engine/projects/')||/^\/api\/creations\/[0-9a-f-]{36}$/.test(url.pathname))&&['PUT','DELETE'].includes(request.method)))throw new HttpError(405,'Méthode non autorisée.');
       if(['POST','PUT','DELETE'].includes(request.method)&&(request.headers.get('origin')!==url.origin||request.headers.get('sec-fetch-site')==='cross-site'))throw new HttpError(403,'Origine refusée.');
       if(api)await limitApiRequest(env.DB,principal.id,request);
       if(['POST','PUT','DELETE'].includes(request.method)){
         const multipart=(url.pathname==='/api/community'||/^\/api\/studio\/projects\/[0-9a-f-]{36}\/assets$/.test(url.pathname))&&request.headers.get('content-type')?.startsWith('multipart/form-data;');
         if(!multipart&&request.headers.get('content-type')?.split(';')[0].trim().toLowerCase()!=='application/json')throw new HttpError(415,'JSON requis.');
-        const limit=multipart?13*1024*1024:url.pathname.startsWith('/api/studio/projects')?900000:url.pathname==='/api/vault'?1500000:['/api/admin','/api/hub'].includes(url.pathname)?8192:40000;
+        const limit=multipart?13*1024*1024:url.pathname.startsWith('/api/engine/projects')?1024*1024+8192:url.pathname.startsWith('/api/studio/projects')?900000:url.pathname==='/api/vault'?1500000:['/api/admin','/api/hub'].includes(url.pathname)?8192:40000;
         const bytes=await readLimitedBytes(request,limit);
         request=new Request(request,{body:bytes});
       }
