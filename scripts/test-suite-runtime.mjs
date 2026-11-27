@@ -78,6 +78,7 @@ try{
  assert.equal((await bobBusiness.evaluate(org=>client.request('/organizations/'+org+'/drafts'),company.id)).drafts.length,1);
  assert.equal(await bobBusiness.evaluate(async org=>{try{await client.request('/organizations/'+org+'/drafts',{method:'POST',body:{title:'Forbidden',payload:{}}})}catch(e){return e.status}},company.id),403);
  const revokePreflight=await api.fetch(membersUrl+'/revoke',{method:'OPTIONS',headers:{Origin:apps.business,'Access-Control-Request-Method':'POST','Access-Control-Request-Headers':'authorization,content-type'}});
+ console.log('DIAGNOSTIC Business revoke preflight',JSON.stringify({status:revokePreflight.status(),allowOrigin:revokePreflight.headers()['access-control-allow-origin']||null,server:revokePreflight.headers()['server']||null,body:(await revokePreflight.text()).slice(0,400).replaceAll(password,'[redacted]')}));
  assert.equal(revokePreflight.status(),204);assert.equal(revokePreflight.headers()['access-control-allow-origin'],apps.business);
  await business.evaluate(org=>client.request('/organizations/'+org+'/members/revoke',{method:'POST',body:{memberId:'WL-TEST-BOB',expectedRevision:1}}),company.id);
  assert.equal(await bobBusiness.evaluate(async org=>{try{await client.request('/organizations/'+org+'/drafts')}catch(e){return e.status}},company.id),404);passed('Business viewer is read-only and member removal immediately blocks access');
