@@ -6,11 +6,11 @@ export default function Registration(){
  e.preventDefault();if(busy||done)return;const form=e.currentTarget,d=new FormData(form);setBusy(true);setStatus('');
  try{const r=await fetch('/api/warlike-auth/registration-request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:d.get('name'),email:d.get('email')})});if(!r.ok)throw Error(r.status===429?'Trop de demandes. Réessaie plus tard.':'Demande non enregistrée.');setDone(true);form.reset();setStatus('Demande reçue. Aucun compte n’est encore créé.');}catch(e){setStatus(e instanceof Error?e.message:'Service indisponible.');}finally{setBusy(false);}
  }
- return <main className="wl-registration-shell">
-  <section className="wl-registration-card" aria-labelledby="registration-title">
-   <div className="wl-registration-brand">WARLIKE / SERVER</div>
+ return <main className="wl-auth-shell">
+  <section className="wl-auth-card" aria-labelledby="registration-title">
+   <div className="wl-auth-brand">WARLIKE / SERVER</div>
    <h1 id="registration-title">Inscription WarLike</h1>
-   <p className="wl-registration-intro">Demande un compte standard soumis à validation du propriétaire. Ton nom et ton adresse seront transmis à l’administrateur.</p>
+   <p className="wl-auth-intro">Demande un compte standard soumis à validation du propriétaire. Ton nom et ton adresse seront transmis à l’administrateur.</p>
    <form onSubmit={submit} aria-busy={busy}>
     <fieldset disabled={busy||done}>
      <label htmlFor="registration-name">Nom</label>
@@ -20,8 +20,8 @@ export default function Registration(){
      <button type="submit">{busy?'Envoi en cours…':done?'Demande envoyée':'Envoyer la demande'}</button>
     </fieldset>
    </form>
-   <p className="wl-registration-status" role="status" data-success={done}>{status}</p>
-   <a className="wl-registration-back" href="/connexion">← Retour à la connexion</a>
+   <p className="wl-auth-status" role="status" data-success={done}>{status}</p>
+   <a className="wl-auth-back" href="/connexion">← Retour à la connexion</a>
   </section>
  </main>;
 }
