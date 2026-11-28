@@ -42,10 +42,10 @@ html[data-warlike-app="warlike-server"] .wl-auth-card input{display:block;width:
 
 /* Auth backdrop: a contour map of the WarLike terrain behind every account screen.
    Lines are a mask tinted by theme tokens, so light and dark themes stay in step. */
-main.wl-auth-shell,main.hub-auth-shell{position:relative;isolation:isolate;overflow-x:clip}
+main.wl-auth-shell,main.hub-auth-shell,main.hub-shell{position:relative;isolation:isolate;overflow-x:clip}
 main.wl-auth-shell{--wl-terrain-ink:var(--wl-border,#9aa8ad);--wl-terrain-glow:var(--wl-surface-alt,#eef1e6);background:radial-gradient(120% 90% at 18% 12%,var(--wl-terrain-glow),transparent 62%),radial-gradient(90% 70% at 92% 100%,color-mix(in srgb,var(--wl-terrain-ink) 22%,transparent),transparent 70%),var(--wl-bg,#f4f7f8)}
-main.hub-auth-shell{--wl-terrain-ink:var(--h-line,#2b3934);background:radial-gradient(110% 80% at 85% 0%,color-mix(in srgb,var(--h-accent,#c3e5ae) 9%,transparent),transparent 60%),var(--h-bg,#111817)}
-main.wl-auth-shell::before,main.hub-auth-shell::before{content:"";position:fixed;inset:-4%;z-index:-1;pointer-events:none;background:var(--wl-terrain-ink);opacity:.55;
+main.hub-auth-shell,main.hub-shell{--wl-terrain-ink:var(--h-line,#2b3934);background:radial-gradient(110% 80% at 85% 0%,color-mix(in srgb,var(--h-accent,#c3e5ae) 9%,transparent),transparent 60%),var(--h-bg,#111817)}
+main.wl-auth-shell::before,main.hub-auth-shell::before,main.hub-shell::before{content:"";position:fixed;inset:-4%;z-index:-1;pointer-events:none;background:var(--wl-terrain-ink);opacity:.55;
  -webkit-mask:url(/design-system/auth-terrain.svg) center/cover no-repeat,radial-gradient(ellipse 38% 46% at 50% 50%,transparent 35%,#000 100%);
  -webkit-mask-composite:source-in;
  mask:url(/design-system/auth-terrain.svg) center/cover no-repeat intersect,radial-gradient(ellipse 38% 46% at 50% 50%,transparent 35%,#000 100%);
@@ -53,6 +53,8 @@ main.wl-auth-shell::before,main.hub-auth-shell::before{content:"";position:fixed
 main.hub-auth-shell::before{opacity:.6;-webkit-mask:url(/design-system/auth-terrain.svg) center/cover no-repeat,linear-gradient(100deg,#0004 0%,#0006 38%,#000 72%);-webkit-mask-composite:source-in;mask:url(/design-system/auth-terrain.svg) center/cover no-repeat intersect,linear-gradient(100deg,#0004 0%,#0006 38%,#000 72%)}
 main.wl-auth-shell>.wl-auth-card{position:relative;box-shadow:0 1px 0 color-mix(in srgb,var(--wl-terrain-ink) 40%,transparent),0 24px 60px -18px color-mix(in srgb,var(--wl-text,#263a43) 28%,transparent)}
 .wl-auth-card .wl-auth-link{display:inline-block;margin-top:4px;text-decoration:underline;text-underline-offset:3px;font-size:14px}
+/* Hub: quieter, and kept off the left so the sidebar edge stays clean. */
+main.hub-shell::before{opacity:.5;-webkit-mask:url(/design-system/auth-terrain.svg) center/cover no-repeat,linear-gradient(90deg,transparent 12%,#0008 30%,#000 70%);-webkit-mask-composite:source-in;mask:url(/design-system/auth-terrain.svg) center/cover no-repeat intersect,linear-gradient(90deg,transparent 12%,#0008 30%,#000 70%)}
 @keyframes wl-terrain-reveal{from{opacity:0;transform:scale(1.05)}}
-@media (prefers-reduced-motion:reduce){main.wl-auth-shell::before,main.hub-auth-shell::before{animation:none}}
-@media print{main.wl-auth-shell::before,main.hub-auth-shell::before{display:none}}
+@media (prefers-reduced-motion:reduce){main.wl-auth-shell::before,main.hub-auth-shell::before,main.hub-shell::before{animation:none}}
+@media print{main.wl-auth-shell::before,main.hub-auth-shell::before,main.hub-shell::before{display:none}}
