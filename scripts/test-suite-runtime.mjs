@@ -27,6 +27,28 @@ let logs='';runtime.stdout.on('data',x=>{logs+=x});runtime.stderr.on('data',x=>{
 const api=await request.newContext({ignoreHTTPSErrors:true});let browser;
 const checks=[],errors=[];
 function passed(name){checks.push(name);console.log('PASS '+name)}
+// Wrangler's local proxy can restart mid-request. Retry only a confirmed
+// proxy restart on a non-mutating OPTIONS request; never retry writes or CORS errors.
+async function checkedPreflight(url){
+ const options={method:'OPTIONS',headers:{Origin:apps.business,'Access-Control-Request-Method':'POST','Access-Control-Request-Headers':'authorization,content-type'}};
+ for(let attempt=0;attempt<3;attempt++){
+  const response=await api.fetch(url,options);
+  const body=await response.text();
+  if(response.status()===503&&body.includes('Your worker restarted mid-request')&&attempt<2){
+   console.warn('Local Worker restart during OPTIONS; waiting for readiness (attempt '+(attempt+1)+')');
+   await response.dispose();
+   await new Promise(r=>setTimeout(r,500*(attempt+1)));
+   if(runtime.exitCode!==null)throw Error('Local Worker exited: '+runtime.exitCode);
+   continue;
+  }
+  assert.equal(response.status(),204,'Business preflight status');
+  assert.equal(response.headers()['access-control-allow-origin'],apps.business);
+  assert.ok((response.headers()['access-control-allow-methods']||'').split(',').some(x=>x.trim()==='POST'));
+  const headers=(response.headers()['access-control-allow-headers']||'').toLowerCase().split(',').map(x=>x.trim());
+  assert.ok(headers.includes('authorization')&&headers.includes('content-type'));
+  return response;
+ }
+}
 async function login(page,id){await page.goto(server+'/connexion');await page.getByLabel('Identifiant',{exact:true}).fill(id.toLowerCase());await page.getByLabel('Mot de passe',{exact:true}).fill(password);const [response]=await Promise.all([page.waitForResponse(r=>r.url()===server+'/api/warlike-auth/login'&&r.request().method()==='POST'),page.getByRole('button',{name:'Se connecter',exact:true}).click()]);if(response.status()!==200)throw Error('Native login '+response.status()+': '+await response.text());await page.waitForURL(u=>u.pathname==='/',{waitUntil:'domcontentloaded',timeout:15000}).catch(async error=>{const details={url:page.url(),pageErrors:errors.slice(-5),body:(await page.locator('body').innerText().catch(()=>'' )).slice(0,1100)};throw Error('Native login redirect failed: '+JSON.stringify(details),{cause:error})})}
 const clientSource=await readFile('examples/suite-client.mjs','utf8');
 async function application(context,app){
@@ -68,7 +90,7 @@ try{
  const bob=await browser.newContext({ignoreHTTPSErrors:true}),bobLogin=await bob.newPage();await login(bobLogin,'WL-TEST-BOB');const bobBusiness=await application(bob,'business');await associate(bobBusiness,'business','Runtime Bob');
  assert.equal(await bobBusiness.evaluate(async org=>{try{await client.request('/organizations/'+org+'/drafts')}catch(e){return e.status}},company.id),404);
  const membersUrl=server+'/api/business/organizations/'+company.id+'/members';
- const preflight=await api.fetch(membersUrl,{method:'OPTIONS',headers:{Origin:apps.business,'Access-Control-Request-Method':'POST','Access-Control-Request-Headers':'authorization,content-type'}});
+ const preflight=await checkedPreflight(membersUrl);
  console.log('DIAGNOSTIC Business membership preflight',JSON.stringify({status:preflight.status(),allowOrigin:preflight.headers()['access-control-allow-origin']||null,allowMethods:preflight.headers()['access-control-allow-methods']||null,allowHeaders:preflight.headers()['access-control-allow-headers']||null,body:(await preflight.text()).slice(0,400)}));
  // Reassert the loopback permission after cross-origin consent navigations.
  await context.grantPermissions(['local-network-access'],{origin:apps.business});
@@ -77,7 +99,7 @@ try{
  await business.evaluate(org=>client.request('/organizations/'+org+'/members',{method:'POST',body:{memberId:'WL-TEST-BOB',role:'viewer',expectedRevision:0}}),company.id);
  assert.equal((await bobBusiness.evaluate(org=>client.request('/organizations/'+org+'/drafts'),company.id)).drafts.length,1);
  assert.equal(await bobBusiness.evaluate(async org=>{try{await client.request('/organizations/'+org+'/drafts',{method:'POST',body:{title:'Forbidden',payload:{}}})}catch(e){return e.status}},company.id),403);
- const revokePreflight=await api.fetch(membersUrl+'/revoke',{method:'OPTIONS',headers:{Origin:apps.business,'Access-Control-Request-Method':'POST','Access-Control-Request-Headers':'authorization,content-type'}});
+ const revokePreflight=await checkedPreflight(membersUrl+'/revoke');
  console.log('DIAGNOSTIC Business revoke preflight',JSON.stringify({status:revokePreflight.status(),allowOrigin:revokePreflight.headers()['access-control-allow-origin']||null,server:revokePreflight.headers()['server']||null,body:(await revokePreflight.text()).slice(0,400).replaceAll(password,'[redacted]')}));
  assert.equal(revokePreflight.status(),204);assert.equal(revokePreflight.headers()['access-control-allow-origin'],apps.business);
  await business.evaluate(org=>client.request('/organizations/'+org+'/members/revoke',{method:'POST',body:{memberId:'WL-TEST-BOB',expectedRevision:1}}),company.id);
@@ -98,6 +120,6 @@ try{
 }finally{
  await browser?.close();await api.dispose();runtime.kill('SIGTERM');await new Promise(r=>{if(runtime.exitCode!==null)return r();runtime.once('exit',r);setTimeout(r,5000).unref()});
  // Never publish request URLs or credentials in artifacts; runtime logs only surfaced on failure after redaction.
- if(checks.length<7)console.error(logs.replaceAll(password,'[redacted]').replace(/(challenge|state|warlike_app_code)=[^\s&]+/g,'$1=[redacted]'));
+ if(!checks.includes('No browser page errors'))console.error(logs.replaceAll(password,'[redacted]').replace(/(challenge|state|warlike_app_code)=[^\s&]+/g,'$1=[redacted]'));
  await rm(state,{recursive:true,force:true});
 }
