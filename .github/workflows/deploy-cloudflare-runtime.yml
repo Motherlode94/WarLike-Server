@@ -8,6 +8,7 @@ on:
       - 'app/**'
       - 'lib/**'
       - 'worker/**'
+      - 'scripts/test-suite-runtime.mjs'
       - 'drizzle/**'
       - 'package.json'
       - 'pnpm-lock.yaml'
