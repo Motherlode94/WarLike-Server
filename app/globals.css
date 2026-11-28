@@ -21,19 +21,21 @@ html[data-warlike-app="warlike-server"] :is(.hub-shell,.hub-auth-shell){--h-bg:#
 html[data-warlike-app="warlike-server"] aside{--wl-accent:#C5C5A9;--wl-primary:#C5C5A9;--wl-primary-text:#17211B;--wl-text:#F8FBF1;--wl-text-muted:#D4DCCA;--wl-surface:#233027;--wl-surface-alt:#37463D;--wl-border:#596A5C}
 
 
-/* Registration is a standalone auth screen, not the dashboard's horizontal main. */
-main.wl-registration-shell{display:grid;place-items:center;min-height:100dvh;padding:clamp(16px,4vw,40px);background:var(--wl-bg,#f4f7f8);color:var(--wl-text,#263a43)}
-.wl-registration-card{width:min(100%,460px);min-width:0;padding:clamp(24px,5vw,36px);background:var(--wl-surface,#fff);border:1px solid var(--wl-border,#dfe9e6);border-radius:16px;box-shadow:0 12px 36px #00000012}
-.wl-registration-brand{font-size:12px;font-weight:700;letter-spacing:1.5px;color:var(--wl-text,#263a43)}
-.wl-registration-card h1{font-size:clamp(26px,5vw,34px);line-height:1.2;letter-spacing:-.8px;margin:18px 0 12px;overflow-wrap:anywhere}
-.wl-registration-intro{font-size:14px;line-height:1.65;margin:0 0 26px;color:var(--wl-text,#263a43)}
-.wl-registration-card fieldset{display:grid;gap:8px;border:0;margin:0;padding:0;min-width:0}
-.wl-registration-card label{font-size:13px;font-weight:600}
-html[data-warlike-app="warlike-server"] .wl-registration-card input{display:block;width:100%;min-width:0;min-height:46px;padding:12px 14px;margin:0 0 12px;font:inherit;background:var(--wl-bg,#f4f7f8);color:var(--wl-text,#263a43);border:1px solid var(--wl-border,#9aa8ad);border-radius:8px}
-.wl-registration-card button{min-height:46px;padding:12px 16px;border:1px solid var(--wl-primary,#41654d);border-radius:8px;background:var(--wl-primary,#41654d);color:var(--wl-primary-text,#fff);font:inherit;font-weight:700;cursor:pointer;white-space:normal}
-.wl-registration-card button:disabled{opacity:.7;cursor:not-allowed}
-.wl-registration-card :focus-visible{outline:2px solid var(--wl-focus,#41654d);outline-offset:3px}
-.wl-registration-status{margin:16px 0 0;font-size:14px;line-height:1.5;overflow-wrap:anywhere}
-.wl-registration-status:empty{margin:0}
-.wl-registration-status[data-success="true"]{font-weight:600}
-.wl-registration-back{display:inline-block;margin-top:22px;text-decoration:underline;text-underline-offset:3px;font-size:14px}
+/* Shared standalone authentication screens, isolated from dashboard layout. */
+main.wl-auth-shell{display:grid;place-items:center;min-height:100dvh;padding:clamp(16px,4vw,40px);background:var(--wl-bg,#f4f7f8);color:var(--wl-text,#263a43)}
+.wl-auth-card{width:min(100%,460px);min-width:0;padding:clamp(24px,5vw,36px);background:var(--wl-surface,#fff);border:1px solid var(--wl-border,#dfe9e6);border-radius:16px;box-shadow:0 12px 36px #00000012}
+.wl-auth-brand{font-size:12px;font-weight:700;letter-spacing:1.5px;color:var(--wl-text,#263a43)}
+.wl-auth-card h1{font-size:clamp(26px,5vw,34px);line-height:1.2;letter-spacing:-.8px;margin:18px 0 12px;overflow-wrap:anywhere}
+.wl-auth-intro{font-size:14px;line-height:1.65;margin:0 0 26px;color:var(--wl-text,#263a43)}
+.wl-auth-card fieldset{display:grid;gap:8px;border:0;margin:0;padding:0;min-width:0}
+.wl-auth-card label{font-size:13px;font-weight:600}
+html[data-warlike-app="warlike-server"] .wl-auth-card input{display:block;width:100%;min-width:0;min-height:46px;padding:12px 14px;margin:0 0 12px;font:inherit;background:var(--wl-bg,#f4f7f8);color:var(--wl-text,#263a43);border:1px solid var(--wl-border,#9aa8ad);border-radius:8px}
+.wl-auth-card button{min-height:46px;padding:12px 16px;border:1px solid var(--wl-primary,#41654d);border-radius:8px;background:var(--wl-primary,#41654d);color:var(--wl-primary-text,#fff);font:inherit;font-weight:700;cursor:pointer;white-space:normal}
+.wl-auth-card button:disabled{opacity:.7;cursor:not-allowed}
+.wl-auth-card :focus-visible{outline:2px solid var(--wl-focus,#41654d);outline-offset:3px}
+.wl-auth-status{margin:16px 0 0;font-size:14px;line-height:1.5;overflow-wrap:anywhere}
+.wl-auth-status:empty{margin:0}
+.wl-auth-status[data-success="true"]{font-weight:600}
+.wl-auth-back{display:inline-block;margin-top:22px;text-decoration:underline;text-underline-offset:3px;font-size:14px}
+
+.wl-auth-card>button{width:100%;display:block}.wl-auth-card form{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}.wl-auth-card form>label{display:block}.wl-auth-card form>label input{margin-top:6px}.wl-auth-card .wl-auth-status[role="alert"]{font-weight:600}.wl-auth-card .wl-auth-back{line-height:1.5}
